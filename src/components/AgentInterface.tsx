@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause } from "lucide-react";
+import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, Copy, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
@@ -16,6 +16,13 @@ interface Contact {
   email: string;
   company: string;
   notes?: string;
+  propertyType?: string;
+}
+
+interface TextTemplate {
+  id: string;
+  name: string;
+  template: string;
 }
 
 export const AgentInterface = () => {
@@ -25,6 +32,7 @@ export const AgentInterface = () => {
   const [callNotes, setCallNotes] = useState("");
   const [callDisposition, setCallDisposition] = useState("");
   const [sessionActive, setSessionActive] = useState(false);
+  const [showTextTemplates, setShowTextTemplates] = useState(false);
   const { toast } = useToast();
 
   const [currentContact] = useState<Contact>({
@@ -33,8 +41,27 @@ export const AgentInterface = () => {
     phone: "+1 (555) 123-4567",
     email: "john.smith@techcorp.com",
     company: "TechCorp Solutions",
+    propertyType: "retail strip center",
     notes: "Interested in enterprise solutions, prefers morning calls"
   });
+
+  const textTemplates: TextTemplate[] = [
+    {
+      id: "1",
+      name: "Standard Introduction",
+      template: `Hi ${currentContact.name}, this is Sam Gfroerer with M&M. I just tried giving you a quick call — I specialize in retail investment properties and wanted to connect regarding your ${currentContact.propertyType}. Let me know if there's a good time to chat, or feel free to text back. Looking forward to connecting!`
+    },
+    {
+      id: "2",
+      name: "Brief Follow-up",
+      template: `Hi ${currentContact.name}, Sam from M&M here. Just called about your ${currentContact.propertyType}. I help investors with retail properties - would love to connect when you have a moment. Text or call back when convenient!`
+    },
+    {
+      id: "3",
+      name: "Value Proposition",
+      template: `Hi ${currentContact.name}, this is Sam with M&M. I specialize in maximizing returns on retail investment properties like your ${currentContact.propertyType}. Just tried calling - would appreciate a few minutes to discuss how I can help. Feel free to text back!`
+    }
+  ];
 
   const salesScript = `
     Hi [Name], this is [Your Name] from OpenDialer Pro. 
@@ -65,6 +92,7 @@ export const AgentInterface = () => {
     }
 
     setIsDialing(true);
+    setShowTextTemplates(false); // Hide templates when starting new call
     // Simulate dialing delay
     setTimeout(() => {
       setIsDialing(false);
@@ -85,6 +113,28 @@ export const AgentInterface = () => {
     });
   };
 
+  const handleDispositionChange = (value: string) => {
+    setCallDisposition(value);
+    // Show text templates for no answer or voicemail dispositions
+    setShowTextTemplates(value === "no-answer" || value === "voicemail");
+  };
+
+  const copyToClipboard = async (text: string, templateName: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied to clipboard",
+        description: `${templateName} template copied successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Please copy the text manually",
+        variant: "destructive"
+      });
+    }
+  };
+
   const submitDisposition = () => {
     if (!callDisposition) {
       toast({
@@ -98,6 +148,7 @@ export const AgentInterface = () => {
     // Reset form
     setCallNotes("");
     setCallDisposition("");
+    setShowTextTemplates(false);
     
     toast({
       title: "Call logged successfully",
@@ -129,6 +180,9 @@ export const AgentInterface = () => {
               <div>
                 <h3 className="font-semibold text-lg">{currentContact.name}</h3>
                 <p className="text-gray-600">{currentContact.company}</p>
+                {currentContact.propertyType && (
+                  <p className="text-sm text-blue-600">Property: {currentContact.propertyType}</p>
+                )}
               </div>
               
               <div className="space-y-2">
@@ -223,6 +277,49 @@ export const AgentInterface = () => {
           </CardContent>
         </Card>
 
+        {/* Text Message Templates */}
+        {showTextTemplates && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MessageSquare className="h-5 w-5" />
+                <span>Text Message Templates</span>
+              </CardTitle>
+              <CardDescription>
+                Copy templates below to send via Phone Link after missed calls
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {textTemplates.map((template) => (
+                  <div key={template.id} className="border rounded-lg p-4 bg-green-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-medium text-sm text-green-800">{template.name}</h4>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyToClipboard(template.template, template.name)}
+                        className="text-green-700 border-green-300 hover:bg-green-100"
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {template.template}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  💡 <strong>Tip:</strong> Copy the template, then paste it into Microsoft Phone Link to send as a text message to {currentContact.name} at {currentContact.phone}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Call Disposition */}
         <Card>
           <CardHeader>
@@ -233,7 +330,7 @@ export const AgentInterface = () => {
             <div className="space-y-4">
               <div>
                 <Label htmlFor="disposition">Call Result</Label>
-                <Select value={callDisposition} onValueChange={setCallDisposition}>
+                <Select value={callDisposition} onValueChange={handleDispositionChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select call outcome" />
                   </SelectTrigger>
