@@ -483,6 +483,34 @@ export class ContactService {
         repaired = true;
       }
       
+      // Fix lastCalled to ensure it's always a Date object or undefined
+      if (contact.lastCalled !== undefined) {
+        if (!(contact.lastCalled instanceof Date)) {
+          // Try to convert string to Date
+          if (typeof contact.lastCalled === 'string') {
+            const parsedDate = new Date(contact.lastCalled);
+            if (!isNaN(parsedDate.getTime())) {
+              contact.lastCalled = parsedDate;
+              repaired = true;
+            } else {
+              // Invalid date string, remove it
+              contact.lastCalled = undefined;
+              repaired = true;
+            }
+          } else {
+            // Not a string or Date, remove it
+            contact.lastCalled = undefined;
+            repaired = true;
+          }
+        } else {
+          // It's already a Date, but check if it's valid
+          if (isNaN(contact.lastCalled.getTime())) {
+            contact.lastCalled = undefined;
+            repaired = true;
+          }
+        }
+      }
+      
       return true;
     });
 
@@ -493,6 +521,35 @@ export class ContactService {
         repaired = true;
         return false;
       }
+      
+      // Ensure timestamp is a Date object
+      if (!(call.timestamp instanceof Date)) {
+        if (typeof call.timestamp === 'string') {
+          const parsedDate = new Date(call.timestamp);
+          if (!isNaN(parsedDate.getTime())) {
+            call.timestamp = parsedDate;
+            repaired = true;
+          } else {
+            // Invalid timestamp, remove the call record
+            console.warn('🔧 Removing call record with invalid timestamp:', call);
+            repaired = true;
+            return false;
+          }
+        } else {
+          // Not a string or Date, remove the call record
+          console.warn('🔧 Removing call record with invalid timestamp type:', call);
+          repaired = true;
+          return false;
+        }
+      } else {
+        // It's already a Date, but check if it's valid
+        if (isNaN(call.timestamp.getTime())) {
+          console.warn('🔧 Removing call record with invalid Date:', call);
+          repaired = true;
+          return false;
+        }
+      }
+      
       return true;
     });
 
