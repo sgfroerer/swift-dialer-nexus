@@ -435,8 +435,8 @@ export const AgentInterface = () => {
             <CardDescription>Use this script as a guide for your call</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <pre className="whitespace-pre-wrap text-sm font-mono text-blue-900">
+            <div className="bg-blue-50 p-6 rounded-lg">
+              <pre className="whitespace-pre-wrap text-sm font-mono text-blue-900 leading-relaxed">
                 {salesScript}
               </pre>
             </div>
@@ -459,7 +459,7 @@ export const AgentInterface = () => {
               <div className="space-y-4">
                 {textTemplates.map((template) => (
                   <div key={template.id} className="border rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-sm text-green-800">{template.name}</h4>
                       <Button
                         size="sm"
@@ -477,7 +477,7 @@ export const AgentInterface = () => {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
                   💡 <strong>Tip:</strong> Copy the template, then paste it into Microsoft Phone Link to send as a text message to {currentContact.name} at {currentContact.phone}
                 </p>
@@ -493,7 +493,7 @@ export const AgentInterface = () => {
             <CardDescription>Log the outcome of your call</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <Label htmlFor="disposition">Call Result</Label>
                 <Select value={callDisposition} onValueChange={handleDispositionChange}>

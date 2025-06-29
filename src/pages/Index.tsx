@@ -1,11 +1,9 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CallListManager } from "@/components/CallListManager";
 import { CampaignDashboard } from "@/components/CampaignDashboard";
 import { AgentInterface } from "@/components/AgentInterface";
-import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
-import { Phone, Users, BarChart3, Settings } from "lucide-react";
+import { Phone, Users, BarChart3 } from "lucide-react";
 
 const Index = () => {
   return (
@@ -30,7 +28,7 @@ const Index = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-96">
+          <TabsList className="grid w-full grid-cols-3 lg:w-96">
             <TabsTrigger value="dashboard" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Dashboard</span>
@@ -43,26 +41,18 @@ const Index = () => {
               <Phone className="h-4 w-4" />
               <span>Agent</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center space-x-2">
-              <Settings className="h-4 w-4" />
-              <span>Analytics</span>
-            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard">
+          <TabsContent value="dashboard" className="space-y-8">
             <CampaignDashboard />
           </TabsContent>
 
-          <TabsContent value="lists">
+          <TabsContent value="lists" className="space-y-8">
             <CallListManager />
           </TabsContent>
 
-          <TabsContent value="agent">
+          <TabsContent value="agent" className="space-y-8">
             <AgentInterface />
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <AnalyticsDashboard />
           </TabsContent>
         </Tabs>
       </main>
