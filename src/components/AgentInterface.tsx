@@ -262,34 +262,31 @@ export const AgentInterface = () => {
   }
 
   return (
-    <div 
-      className="grid gap-8"
-      style={{
-        gridTemplateColumns: 'minmax(340px, 1.5fr) minmax(420px, 1.8fr) minmax(500px, 2fr)',
-        gridTemplateAreas: '"sidebar contact main"'
-      }}
-    >
-      {/* Left Sidebar - Gamification */}
-      <div style={{ gridArea: 'sidebar' }} className="space-y-6 min-w-0">
-        <AgentGamification sessionStats={sessionStats} />
-      </div>
-
-      {/* Contact Information */}
-      <div style={{ gridArea: 'contact' }} className="space-y-6 min-w-0">
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Current Contact</span>
-              </div>
-              <Button variant="outline" size="sm" onClick={skipContact} className="hover:scale-105 transition-transform">
-                <SkipForward className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
+    <div className="max-w-[1600px] mx-auto px-4">
+      <div 
+        className="grid gap-6"
+        style={{
+          gridTemplateColumns: '380px 1fr 480px',
+          gridTemplateAreas: '"sidebar main disposition"',
+          minHeight: 'calc(100vh - 200px)'
+        }}
+      >
+        {/* Left Sidebar - Gamification & Contact Info */}
+        <div style={{ gridArea: 'sidebar' }} className="space-y-6">
+          {/* Contact Information */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <span>Current Contact</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={skipContact} className="hover:scale-105 transition-transform">
+                  <SkipForward className="h-4 w-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
                 <h3 className="font-semibold text-lg leading-tight break-words">{currentContact.name}</h3>
                 <p className="text-gray-600 mt-1 leading-relaxed break-words">{currentContact.company}</p>
@@ -331,172 +328,177 @@ export const AgentInterface = () => {
                   <p className="text-sm text-gray-600 mt-2 leading-relaxed break-words">{currentContact.notes}</p>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Calling Widget */}
-        <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
+          {/* Calling Widget */}
+          <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
 
-        {/* Session Stats */}
-        {sessionActive && (
+          {/* Call Controls */}
           <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Session Stats</CardTitle>
+            <CardHeader className="pb-4">
+              <CardTitle>Call Controls</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span>Calls Made:</span>
-                  <span className="font-medium">{sessionStats.callsMade}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Connected:</span>
-                  <span className="font-medium">{sessionStats.connected}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Connection Rate:</span>
-                  <span className="font-medium">
-                    {sessionStats.callsMade > 0 ? Math.round((sessionStats.connected / sessionStats.callsMade) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Session Time:</span>
-                  <span className="font-medium">
-                    {Math.floor((Date.now() - sessionStats.startTime.getTime()) / 60000)}m
-                  </span>
-                </div>
+              <div className="space-y-4">
+                <Button
+                  onClick={toggleSession}
+                  variant={sessionActive ? "destructive" : "default"}
+                  className="w-full hover:scale-105 transition-transform"
+                >
+                  {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                  {sessionActive ? "Pause Session" : "Start Session"}
+                </Button>
+
+                {sessionActive && (
+                  <>
+                    {!callActive && !isDialing && cooldownTimer === 0 && (
+                      <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
+                        <PhoneCall className="h-4 w-4 mr-2" />
+                        Start Call
+                      </Button>
+                    )}
+
+                    {isDialing && (
+                      <Button disabled className="w-full">
+                        <Phone className="h-4 w-4 mr-2 animate-pulse" />
+                        Dialing {currentContact.name}...
+                      </Button>
+                    )}
+
+                    {callActive && (
+                      <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
+                        <PhoneOff className="h-4 w-4 mr-2" />
+                        End Call
+                      </Button>
+                    )}
+
+                    {cooldownTimer > 0 && (
+                      <div className="text-center">
+                        <Badge variant="outline" className="bg-yellow-50 animate-pulse">
+                          <Clock className="h-4 w-4 mr-1" />
+                          Cooldown: {cooldownTimer}s
+                        </Badge>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* Call Controls */}
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="pb-4">
-            <CardTitle>Call Controls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Button
-                onClick={toggleSession}
-                variant={sessionActive ? "destructive" : "default"}
-                className="w-full hover:scale-105 transition-transform"
-              >
-                {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                {sessionActive ? "Pause Session" : "Start Session"}
-              </Button>
+          {/* Session Stats */}
+          {sessionActive && (
+            <Card className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Session Stats</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span>Calls Made:</span>
+                    <span className="font-medium">{sessionStats.callsMade}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Connected:</span>
+                    <span className="font-medium">{sessionStats.connected}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Connection Rate:</span>
+                    <span className="font-medium">
+                      {sessionStats.callsMade > 0 ? Math.round((sessionStats.connected / sessionStats.callsMade) * 100) : 0}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Session Time:</span>
+                    <span className="font-medium">
+                      {Math.floor((Date.now() - sessionStats.startTime.getTime()) / 60000)}m
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-              {sessionActive && (
-                <>
-                  {!callActive && !isDialing && cooldownTimer === 0 && (
-                    <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
-                      <PhoneCall className="h-4 w-4 mr-2" />
-                      Start Call
-                    </Button>
-                  )}
+          {/* Gamification - Moved to bottom */}
+          <AgentGamification sessionStats={sessionStats} />
+        </div>
 
-                  {isDialing && (
-                    <Button disabled className="w-full">
-                      <Phone className="h-4 w-4 mr-2 animate-pulse" />
-                      Dialing {currentContact.name}...
-                    </Button>
-                  )}
-
-                  {callActive && (
-                    <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
-                      <PhoneOff className="h-4 w-4 mr-2" />
-                      End Call
-                    </Button>
-                  )}
-
-                  {cooldownTimer > 0 && (
-                    <div className="text-center">
-                      <Badge variant="outline" className="bg-yellow-50 animate-pulse">
-                        <Clock className="h-4 w-4 mr-1" />
-                        Cooldown: {cooldownTimer}s
-                      </Badge>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Interface */}
-      <div style={{ gridArea: 'main' }} className="space-y-8 min-w-0">
-        {/* Editable Sales Script */}
-        <EditableTemplate
-          title="Sales Script"
-          templates={salesScripts}
-          activeTemplateId={activeSalesScriptId}
-          customContent={customSalesScript}
-          onTemplateChange={handleSalesScriptTemplateChange}
-          onCustomContentChange={handleSalesScriptContentChange}
-          onSave={handleSalesScriptSave}
-          placeholder="Enter your custom sales script here..."
-          contact={currentContact}
-          processTemplate={templateService.processTemplate.bind(templateService)}
-        />
-
-        {/* Text Message Templates - Only show for specific call results */}
-        {showTextTemplates && (
-          <TextTemplateSelector
+        {/* Main Content - Sales Script & Text Templates */}
+        <div style={{ gridArea: 'main' }} className="space-y-6">
+          {/* Editable Sales Script */}
+          <EditableTemplate
+            title="Sales Script"
+            templates={salesScripts}
+            activeTemplateId={activeSalesScriptId}
+            customContent={customSalesScript}
+            onTemplateChange={handleSalesScriptTemplateChange}
+            onCustomContentChange={handleSalesScriptContentChange}
+            onSave={handleSalesScriptSave}
+            placeholder="Enter your custom sales script here..."
             contact={currentContact}
-            onTemplateCopy={handleTemplateCopy}
+            processTemplate={templateService.processTemplate.bind(templateService)}
           />
-        )}
 
-        {/* Call Disposition */}
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="pb-4">
-            <CardTitle>Call Disposition</CardTitle>
-            <CardDescription>Log the outcome of your call</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="disposition" className="text-sm font-medium">Call Result</Label>
-                <Select value={callDisposition} onValueChange={handleDispositionChange}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select call outcome" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vm">📠 VM 📠</SelectItem>
-                    <SelectItem value="contact">🗣️ Contact 🗣️</SelectItem>
-                    <SelectItem value="no-vm">✖️ No VM ✖️</SelectItem>
-                    <SelectItem value="cold-text">📱 Cold-Text 📱</SelectItem>
-                    <SelectItem value="not-interested">Not Interested</SelectItem>
-                    <SelectItem value="dnc">❌ DNC ❌</SelectItem>
-                    <SelectItem value="email">📧 Email 📧</SelectItem>
-                  </SelectContent>
-                </Select>
+          {/* Text Message Templates - Only show for specific call results */}
+          {showTextTemplates && (
+            <TextTemplateSelector
+              contact={currentContact}
+              onTemplateCopy={handleTemplateCopy}
+            />
+          )}
+        </div>
+
+        {/* Right Column - Call Disposition */}
+        <div style={{ gridArea: 'disposition' }} className="space-y-6">
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle>Call Disposition</CardTitle>
+              <CardDescription>Log the outcome of your call</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="disposition" className="text-sm font-medium">Call Result</Label>
+                  <Select value={callDisposition} onValueChange={handleDispositionChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select call outcome" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vm">📠 VM 📠</SelectItem>
+                      <SelectItem value="contact">🗣️ Contact 🗣️</SelectItem>
+                      <SelectItem value="no-vm">✖️ No VM ✖️</SelectItem>
+                      <SelectItem value="cold-text">📱 Cold-Text 📱</SelectItem>
+                      <SelectItem value="not-interested">Not Interested</SelectItem>
+                      <SelectItem value="dnc">❌ DNC ❌</SelectItem>
+                      <SelectItem value="email">📧 Email 📧</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="notes" className="text-sm font-medium">Call Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={callNotes}
+                    onChange={(e) => setCallNotes(e.target.value)}
+                    placeholder="Add any relevant notes about the call..."
+                    rows={6}
+                    className="resize-none leading-relaxed"
+                  />
+                </div>
+
+                <Button 
+                  onClick={submitDisposition} 
+                  className="w-full hover:scale-105 transition-transform" 
+                  disabled={!callDisposition}
+                >
+                  Submit & Next Contact
+                </Button>
               </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="notes" className="text-sm font-medium">Call Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={callNotes}
-                  onChange={(e) => setCallNotes(e.target.value)}
-                  placeholder="Add any relevant notes about the call..."
-                  rows={4}
-                  className="resize-none leading-relaxed"
-                />
-              </div>
-
-              <Button 
-                onClick={submitDisposition} 
-                className="w-full hover:scale-105 transition-transform" 
-                disabled={!callDisposition}
-              >
-                Submit & Next Contact
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
