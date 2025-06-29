@@ -126,7 +126,7 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
         });
       } else {
         // Auto-end call if no connection
-        handleCallEnd('no-answer');
+        handleCallEnd('no-vm');
         toast({
           title: "No answer",
           description: "Call went to voicemail or no answer",
@@ -158,13 +158,13 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
     
     if (autoDisposition) {
       setCallDisposition(autoDisposition);
-      setShowTextTemplates(autoDisposition === "no-answer" || autoDisposition === "voicemail");
+      setShowTextTemplates(autoDisposition === "no-vm" || autoDisposition === "vm");
     }
   };
 
   const handleDispositionChange = (value: string) => {
     setCallDisposition(value);
-    setShowTextTemplates(value === "no-answer" || value === "voicemail");
+    setShowTextTemplates(value === "no-vm" || value === "vm");
   };
 
   const copyToClipboard = async (text: string, templateName: string) => {
@@ -194,10 +194,13 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
     }
 
     // Log the call
-    const outcome = callDisposition.includes('connected') ? 'connected' : 
-                   callDisposition === 'voicemail' ? 'voicemail' :
-                   callDisposition === 'no-answer' ? 'no-answer' :
-                   callDisposition === 'busy' ? 'busy' : 'failed';
+    const outcome = callDisposition === 'contact' ? 'connected' : 
+                   callDisposition === 'vm' ? 'voicemail' :
+                   callDisposition === 'no-vm' ? 'no-answer' :
+                   callDisposition === 'cold-text' ? 'no-answer' :
+                   callDisposition === 'not-interested' ? 'connected' :
+                   callDisposition === 'dnc' ? 'failed' :
+                   callDisposition === 'email' ? 'no-answer' : 'failed';
     
     const duration = callStartTime ? Math.floor((Date.now() - callStartTime.getTime()) / 1000) : 0;
     
@@ -513,14 +516,13 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
                     <SelectValue placeholder="Select call outcome" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="connected">Connected - Interested</SelectItem>
-                    <SelectItem value="connected-not-interested">Connected - Not Interested</SelectItem>
-                    <SelectItem value="voicemail">Voicemail Left</SelectItem>
-                    <SelectItem value="no-answer">No Answer</SelectItem>
-                    <SelectItem value="busy">Busy Signal</SelectItem>
-                    <SelectItem value="callback">Callback Requested</SelectItem>
-                    <SelectItem value="wrong-number">Wrong Number</SelectItem>
-                    <SelectItem value="do-not-call">Do Not Call</SelectItem>
+                    <SelectItem value="vm">📠 VM 📠</SelectItem>
+                    <SelectItem value="contact">🗣️ Contact 🗣️</SelectItem>
+                    <SelectItem value="no-vm">✖️ No VM ✖️</SelectItem>
+                    <SelectItem value="cold-text">📱 Cold-Text 📱</SelectItem>
+                    <SelectItem value="not-interested">Not Interested</SelectItem>
+                    <SelectItem value="dnc">❌ DNC ❌</SelectItem>
+                    <SelectItem value="email">📧 Email 📧</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
