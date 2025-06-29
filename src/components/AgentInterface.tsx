@@ -8,14 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, Copy, MessageSquare, SkipForward, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
+import { templateService } from "@/services/templateService";
 import { CallingWidget } from "@/components/CallingWidget";
 import { AgentGamification } from "@/components/AgentGamification";
-
-interface TextTemplate {
-  id: string;
-  name: string;
-  template: string;
-}
+import { EditableTemplate } from "@/components/EditableTemplate";
 
 export const AgentInterface = () => {
   const [isDialing, setIsDialing] = useState(false);
@@ -28,6 +24,13 @@ export const AgentInterface = () => {
   const [currentContact, setCurrentContact] = useState<Contact | null>(null);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [sessionStats, setSessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
+  
+  // Template states
+  const [salesScripts, setSalesScripts] = useState(templateService.getSalesScripts());
+  const [textTemplates, setTextTemplates] = useState(templateService.getTextTemplates());
+  const [activeSalesScriptId, setActiveSalesScriptId] = useState(templateService.getActiveSalesScript()?.id || 'default-retail');
+  const [customSalesScript, setCustomSalesScript] = useState(templateService.getCustomSalesScript());
+  
   const { toast } = useToast();
 
   // Load initial contact on mount
@@ -49,32 +52,6 @@ export const AgentInterface = () => {
       });
     }
   };
-
-  const textTemplates: TextTemplate[] = currentContact ? [
-    {
-      id: "1",
-      name: "Standard Introduction",
-      template: `Hi ${currentContact.name}, this is Sam Gfroerer with M&M. I just tried giving you a quick call — I specialize in retail investment properties and wanted to connect regarding your ${currentContact.propertyType}. Let me know if there's a good time to chat, or feel free to text back. Looking forward to connecting!`
-    },
-    {
-      id: "2",
-      name: "Brief Follow-up",
-      template: `Hi ${currentContact.name}, Sam from M&M here. Just called about your ${currentContact.propertyType}. I help investors with retail properties - would love to connect when you have a moment. Text or call back when convenient!`
-    },
-    {
-      id: "3",
-      name: "Value Proposition",
-      template: `Hi ${currentContact.name}, this is Sam with M&M. I specialize in maximizing returns on retail investment properties like your ${currentContact.propertyType}. Just tried calling - would appreciate a few minutes to discuss how I can help. Feel free to text back!`
-    }
-  ] : [];
-
-  const salesScript = currentContact ? `Hi ${currentContact.name}, this is Sam Gfroerer from M&M Real Estate Investment Services.
-
-I'm calling because I specialize in helping property owners like yourself maximize returns on retail investment properties, particularly ${currentContact.propertyType} investments.
-
-I noticed you own property with ${currentContact.company}, and I'd love to discuss some strategies that have helped my other clients increase their property values by 15-30%.
-
-Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -158,13 +135,15 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
     
     if (autoDisposition) {
       setCallDisposition(autoDisposition);
-      setShowTextTemplates(autoDisposition === "no-vm" || autoDisposition === "vm");
+      // Show text templates for specific dispositions
+      setShowTextTemplates(['vm', 'no-vm', 'cold-text', 'email'].includes(autoDisposition));
     }
   };
 
   const handleDispositionChange = (value: string) => {
     setCallDisposition(value);
-    setShowTextTemplates(value === "no-vm" || value === "vm");
+    // Show text templates only for specific call results
+    setShowTextTemplates(['vm', 'no-vm', 'cold-text', 'email'].includes(value));
   };
 
   const copyToClipboard = async (text: string, templateName: string) => {
@@ -248,6 +227,24 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
       title: sessionActive ? "Session paused" : "Session started",
       description: sessionActive ? "Dialing session has been paused" : "Ready to start making calls",
     });
+  };
+
+  // Template handlers
+  const handleSalesScriptTemplateChange = (templateId: string) => {
+    setActiveSalesScriptId(templateId);
+    templateService.setActiveSalesScript(templateId);
+  };
+
+  const handleSalesScriptContentChange = (content: string) => {
+    setCustomSalesScript(content);
+  };
+
+  const handleSalesScriptSave = () => {
+    templateService.saveCustomSalesScript(customSalesScript);
+  };
+
+  const handleTextTemplateSave = (templateId: string, content: string) => {
+    templateService.saveCustomTextTemplate(templateId, content);
   };
 
   if (!currentContact) {
@@ -435,28 +432,21 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
 
       {/* Main Interface */}
       <div style={{ gridArea: 'main' }} className="space-y-8 min-w-0">
-        {/* Sales Script */}
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="pb-4">
-            <CardTitle>Sales Script</CardTitle>
-            <CardDescription>Use this script as a guide for your call</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
-              <div className="prose prose-sm max-w-none">
-                <div className="text-blue-900 leading-relaxed font-sans text-sm whitespace-normal break-words">
-                  {salesScript.split('\n\n').map((paragraph, index) => (
-                    <p key={index} className="mb-4 last:mb-0">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Editable Sales Script */}
+        <EditableTemplate
+          title="Sales Script"
+          templates={salesScripts}
+          activeTemplateId={activeSalesScriptId}
+          customContent={customSalesScript}
+          onTemplateChange={handleSalesScriptTemplateChange}
+          onCustomContentChange={handleSalesScriptContentChange}
+          onSave={handleSalesScriptSave}
+          placeholder="Enter your custom sales script here..."
+          contact={currentContact}
+          processTemplate={templateService.processTemplate.bind(templateService)}
+        />
 
-        {/* Text Message Templates */}
+        {/* Text Message Templates - Only show for specific call results */}
         {showTextTemplates && (
           <Card className="hover:shadow-lg transition-shadow duration-200 animate-in slide-in-from-top-2">
             <CardHeader className="pb-4">
@@ -470,27 +460,34 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {textTemplates.map((template) => (
-                  <div key={template.id} className="border rounded-lg p-6 bg-green-50 hover:bg-green-100 transition-colors">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-medium text-green-800">{template.name}</h4>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => copyToClipboard(template.template, template.name)}
-                        className="text-green-700 border-green-300 hover:bg-green-100 hover:scale-105 transition-transform flex-shrink-0"
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
-                      </Button>
+                {textTemplates.map((template) => {
+                  const processedContent = templateService.processTemplate(
+                    templateService.getCurrentTextTemplate(template.id) || template.content,
+                    currentContact
+                  );
+                  
+                  return (
+                    <div key={template.id} className="border rounded-lg p-6 bg-green-50 hover:bg-green-100 transition-colors">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-medium text-green-800">{template.name}</h4>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyToClipboard(processedContent, template.name)}
+                          className="text-green-700 border-green-300 hover:bg-green-100 hover:scale-105 transition-transform flex-shrink-0"
+                        >
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      <div className="prose prose-sm max-w-none">
+                        <p className="text-gray-700 leading-relaxed font-sans text-sm whitespace-pre-wrap break-words">
+                          {processedContent}
+                        </p>
+                      </div>
                     </div>
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-gray-700 leading-relaxed font-sans text-sm whitespace-normal break-words">
-                        {template.template}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <p className="text-sm text-blue-700 leading-relaxed break-words">
