@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw, ChevronDown, ChevronUp, Target, TrendingUp, Award, Trophy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
 import { templateService } from "@/services/templateService";
@@ -13,6 +14,7 @@ import { CallingWidget } from "@/components/CallingWidget";
 import { AgentGamification } from "@/components/AgentGamification";
 import { EditableTemplate } from "@/components/EditableTemplate";
 import { TextTemplateSelector } from "@/components/TextTemplateSelector";
+import { Progress } from "@/components/ui/progress";
 
 export const AgentInterface = () => {
   const [isDialing, setIsDialing] = useState(false);
@@ -25,6 +27,11 @@ export const AgentInterface = () => {
   const [currentContact, setCurrentContact] = useState<Contact | null>(null);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [sessionStats, setSessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
+  
+  // Collapsible states
+  const [salesScriptOpen, setSalesScriptOpen] = useState(true);
+  const [liveMetricsOpen, setLiveMetricsOpen] = useState(true);
+  const [achievementsOpen, setAchievementsOpen] = useState(true);
   
   // Template states
   const [salesScripts, setSalesScripts] = useState(templateService.getSalesScripts());
@@ -261,243 +268,380 @@ export const AgentInterface = () => {
     );
   }
 
+  const stats = contactService.getStats();
+  const totalContacts = stats.contacts.total;
+  const completionPercentage = totalContacts > 0 ? ((sessionStats.callsMade || 0) / totalContacts) * 100 : 0;
+
   return (
-    <div className="max-w-[1600px] mx-auto px-4">
-      <div 
-        className="grid gap-6"
-        style={{
-          gridTemplateColumns: '380px 1fr 480px',
-          gridTemplateAreas: '"sidebar main disposition"',
-          minHeight: 'calc(100vh - 200px)'
-        }}
-      >
-        {/* Left Sidebar - Gamification & Contact Info */}
-        <div style={{ gridArea: 'sidebar' }} className="space-y-6">
-          {/* Contact Information */}
-          <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <User className="h-5 w-5" />
-                  <span>Current Contact</span>
-                </div>
-                <Button variant="outline" size="sm" onClick={skipContact} className="hover:scale-105 transition-transform">
-                  <SkipForward className="h-4 w-4" />
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-lg leading-tight break-words">{currentContact.name}</h3>
-                <p className="text-gray-600 mt-1 leading-relaxed break-words">{currentContact.company}</p>
-                {currentContact.propertyType && (
-                  <p className="text-sm text-blue-600 mt-2 break-words">Property: {currentContact.propertyType}</p>
-                )}
-                <div className="flex items-center space-x-2 mt-3 flex-wrap gap-2">
-                  <Badge variant={currentContact.status === 'pending' ? 'default' : 'secondary'}>
-                    {currentContact.status}
-                  </Badge>
-                  {currentContact.callCount > 0 && (
-                    <Badge variant="outline">
-                      {currentContact.callCount} calls
-                    </Badge>
-                  )}
-                </div>
+    <div className="flex min-h-screen">
+      {/* Left Sidebar - Campaign Progress, Live Metrics, Achievements, Performance */}
+      <div className="w-80 bg-gray-50 border-r border-gray-200 p-4 space-y-4 overflow-y-auto">
+        {/* Campaign Progress */}
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-lg">
+              <Target className="h-5 w-5 text-blue-600" />
+              <span>Campaign Progress</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Call {sessionStats.callsMade || 0} of {totalContacts}</span>
+              <span className="text-sm text-gray-600">{Math.round(completionPercentage)}%</span>
+            </div>
+            <Progress value={completionPercentage} className="h-3" />
+            
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-green-600">{sessionStats.connected || 0}</div>
+                <div className="text-xs text-gray-600">Connected</div>
               </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                  <span className="text-sm break-all">{currentContact.phone}</span>
+              <div className="text-center p-3 bg-white rounded-lg border">
+                <div className="text-2xl font-bold text-blue-600">
+                  {sessionStats.callsMade > 0 ? Math.round(((sessionStats.connected || 0) / sessionStats.callsMade) * 100) : 0}%
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm flex-shrink-0">📧</span>
-                  <span className="text-sm break-all">{currentContact.email}</span>
-                </div>
-                {currentContact.lastCalled && (
+                <div className="text-xs text-gray-600">Success Rate</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Live Metrics - Collapsible */}
+        <Collapsible open={liveMetricsOpen} onOpenChange={setLiveMetricsOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                <CardTitle className="flex items-center justify-between text-lg">
                   <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-sm">Last called: {currentContact.lastCalled.toLocaleDateString()}</span>
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <span>Live Metrics</span>
                   </div>
-                )}
-              </div>
-
-              {currentContact.notes && (
-                <div className="pt-2 border-t">
-                  <Label className="text-sm font-medium">Notes:</Label>
-                  <p className="text-sm text-gray-600 mt-2 leading-relaxed break-words">{currentContact.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Calling Widget */}
-          <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
-
-          {/* Call Controls */}
-          <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardHeader className="pb-4">
-              <CardTitle>Call Controls</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Button
-                  onClick={toggleSession}
-                  variant={sessionActive ? "destructive" : "default"}
-                  className="w-full hover:scale-105 transition-transform"
-                >
-                  {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                  {sessionActive ? "Pause Session" : "Start Session"}
-                </Button>
-
-                {sessionActive && (
-                  <>
-                    {!callActive && !isDialing && cooldownTimer === 0 && (
-                      <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
-                        <PhoneCall className="h-4 w-4 mr-2" />
-                        Start Call
-                      </Button>
-                    )}
-
-                    {isDialing && (
-                      <Button disabled className="w-full">
-                        <Phone className="h-4 w-4 mr-2 animate-pulse" />
-                        Dialing {currentContact.name}...
-                      </Button>
-                    )}
-
-                    {callActive && (
-                      <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
-                        <PhoneOff className="h-4 w-4 mr-2" />
-                        End Call
-                      </Button>
-                    )}
-
-                    {cooldownTimer > 0 && (
-                      <div className="text-center">
-                        <Badge variant="outline" className="bg-yellow-50 animate-pulse">
-                          <Clock className="h-4 w-4 mr-1" />
-                          Cooldown: {cooldownTimer}s
-                        </Badge>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Session Stats */}
-          {sessionActive && (
-            <Card className="hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Session Stats</CardTitle>
+                  {liveMetricsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span>Calls Made:</span>
-                    <span className="font-medium">{sessionStats.callsMade}</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Session Time</span>
+                  <Badge variant="outline" className="font-mono">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {Math.floor((Date.now() - sessionStats.startTime.getTime()) / 60000)}m
+                  </Badge>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Current Streak</span>
+                  <Badge variant="outline" className="bg-orange-50 border-orange-200">
+                    <span className="mr-1">🔥</span>
+                    0
+                  </Badge>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Best Streak</span>
+                  <Badge variant="outline" className="bg-purple-50 border-purple-200">
+                    <span className="mr-1">⭐</span>
+                    0
+                  </Badge>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Achievements - Collapsible */}
+        <Collapsible open={achievementsOpen} onOpenChange={setAchievementsOpen}>
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                <CardTitle className="flex items-center justify-between text-lg">
+                  <div className="flex items-center space-x-2">
+                    <Award className="h-5 w-5 text-yellow-600" />
+                    <span>Achievements</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Connected:</span>
-                    <span className="font-medium">{sessionStats.connected}</span>
+                  {achievementsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-3">
+                <div className="p-3 rounded-lg border bg-gray-50">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="p-1 rounded bg-gray-100">
+                        <Phone className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">First Call</div>
+                        <div className="text-xs text-gray-600">Make your first call</div>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="bg-gray-500 text-white border-0 text-xs">
+                      common
+                    </Badge>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Connection Rate:</span>
-                    <span className="font-medium">
-                      {sessionStats.callsMade > 0 ? Math.round((sessionStats.connected / sessionStats.callsMade) * 100) : 0}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Session Time:</span>
-                    <span className="font-medium">
-                      {Math.floor((Date.now() - sessionStats.startTime.getTime()) / 60000)}m
-                    </span>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span>0/1</span>
+                      <span>0%</span>
+                    </div>
+                    <Progress value={0} className="h-2" />
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          )}
-
-          {/* Gamification - Moved to bottom */}
-          <AgentGamification sessionStats={sessionStats} />
-        </div>
-
-        {/* Main Content - Sales Script & Text Templates */}
-        <div style={{ gridArea: 'main' }} className="space-y-6">
-          {/* Editable Sales Script */}
-          <EditableTemplate
-            title="Sales Script"
-            templates={salesScripts}
-            activeTemplateId={activeSalesScriptId}
-            customContent={customSalesScript}
-            onTemplateChange={handleSalesScriptTemplateChange}
-            onCustomContentChange={handleSalesScriptContentChange}
-            onSave={handleSalesScriptSave}
-            placeholder="Enter your custom sales script here..."
-            contact={currentContact}
-            processTemplate={templateService.processTemplate.bind(templateService)}
-          />
-
-          {/* Text Message Templates - Only show for specific call results */}
-          {showTextTemplates && (
-            <TextTemplateSelector
-              contact={currentContact}
-              onTemplateCopy={handleTemplateCopy}
-            />
-          )}
-        </div>
-
-        {/* Right Column - Call Disposition */}
-        <div style={{ gridArea: 'disposition' }} className="space-y-6">
-          <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardHeader className="pb-4">
-              <CardTitle>Call Disposition</CardTitle>
-              <CardDescription>Log the outcome of your call</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <Label htmlFor="disposition" className="text-sm font-medium">Call Result</Label>
-                  <Select value={callDisposition} onValueChange={handleDispositionChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select call outcome" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vm">📠 VM 📠</SelectItem>
-                      <SelectItem value="contact">🗣️ Contact 🗣️</SelectItem>
-                      <SelectItem value="no-vm">✖️ No VM ✖️</SelectItem>
-                      <SelectItem value="cold-text">📱 Cold-Text 📱</SelectItem>
-                      <SelectItem value="not-interested">Not Interested</SelectItem>
-                      <SelectItem value="dnc">❌ DNC ❌</SelectItem>
-                      <SelectItem value="email">📧 Email 📧</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="notes" className="text-sm font-medium">Call Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={callNotes}
-                    onChange={(e) => setCallNotes(e.target.value)}
-                    placeholder="Add any relevant notes about the call..."
-                    rows={6}
-                    className="resize-none leading-relaxed"
-                  />
-                </div>
-
-                <Button 
-                  onClick={submitDisposition} 
-                  className="w-full hover:scale-105 transition-transform" 
-                  disabled={!callDisposition}
-                >
-                  Submit & Next Contact
-                </Button>
-              </div>
-            </CardContent>
+            </CollapsibleContent>
           </Card>
+        </Collapsible>
+
+        {/* Performance */}
+        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-lg">
+              <Trophy className="h-5 w-5 text-yellow-600" />
+              <span>Performance</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-600 mb-2">
+                {sessionStats.callsMade > 0 ? Math.round(((sessionStats.connected || 0) / sessionStats.callsMade) * 100) : 0}%
+              </div>
+              <div className="text-sm text-gray-600 mb-4">Connection Rate</div>
+              
+              <div className="space-y-2">
+                {sessionStats.callsMade >= 10 && (
+                  <Badge className="bg-blue-500">Consistent Caller</Badge>
+                )}
+                {(sessionStats.connected || 0) >= 5 && (
+                  <Badge className="bg-green-500">Great Connector</Badge>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 p-6">
+        <div 
+          className="grid gap-6 h-full"
+          style={{
+            gridTemplateColumns: '1fr 1fr',
+            gridTemplateRows: 'auto auto 1fr',
+            gridTemplateAreas: '"contact sales" "controls sales" "disposition sales"'
+          }}
+        >
+          {/* Contact Information */}
+          <div style={{ gridArea: 'contact' }}>
+            <Card className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-5 w-5" />
+                    <span>Current Contact</span>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={skipContact} className="hover:scale-105 transition-transform">
+                    <SkipForward className="h-4 w-4" />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="font-semibold text-lg leading-tight break-words">{currentContact.name}</h3>
+                  <p className="text-gray-600 mt-1 leading-relaxed break-words">{currentContact.company}</p>
+                  {currentContact.propertyType && (
+                    <p className="text-sm text-blue-600 mt-2 break-words">Property: {currentContact.propertyType}</p>
+                  )}
+                  <div className="flex items-center space-x-2 mt-3 flex-wrap gap-2">
+                    <Badge variant={currentContact.status === 'pending' ? 'default' : 'secondary'}>
+                      {currentContact.status}
+                    </Badge>
+                    {currentContact.callCount > 0 && (
+                      <Badge variant="outline">
+                        {currentContact.callCount} calls
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-sm break-all">{currentContact.phone}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm flex-shrink-0">📧</span>
+                    <span className="text-sm break-all">{currentContact.email}</span>
+                  </div>
+                  {currentContact.lastCalled && (
+                    <div className="flex items-center space-x-2">
+                      <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <span className="text-sm">Last called: {currentContact.lastCalled.toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+
+                {currentContact.notes && (
+                  <div className="pt-2 border-t">
+                    <Label className="text-sm font-medium">Notes:</Label>
+                    <p className="text-sm text-gray-600 mt-2 leading-relaxed break-words">{currentContact.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Call Controls */}
+          <div style={{ gridArea: 'controls' }}>
+            <div className="space-y-4">
+              <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
+              
+              <Card className="hover:shadow-lg transition-shadow duration-200">
+                <CardHeader className="pb-4">
+                  <CardTitle>Call Controls</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Button
+                      onClick={toggleSession}
+                      variant={sessionActive ? "destructive" : "default"}
+                      className="w-full hover:scale-105 transition-transform"
+                    >
+                      {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                      {sessionActive ? "Pause Session" : "Start Session"}
+                    </Button>
+
+                    {sessionActive && (
+                      <>
+                        {!callActive && !isDialing && cooldownTimer === 0 && (
+                          <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
+                            <PhoneCall className="h-4 w-4 mr-2" />
+                            Start Call
+                          </Button>
+                        )}
+
+                        {isDialing && (
+                          <Button disabled className="w-full">
+                            <Phone className="h-4 w-4 mr-2 animate-pulse" />
+                            Dialing {currentContact.name}...
+                          </Button>
+                        )}
+
+                        {callActive && (
+                          <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
+                            <PhoneOff className="h-4 w-4 mr-2" />
+                            End Call
+                          </Button>
+                        )}
+
+                        {cooldownTimer > 0 && (
+                          <div className="text-center">
+                            <Badge variant="outline" className="bg-yellow-50 animate-pulse">
+                              <Clock className="h-4 w-4 mr-1" />
+                              Cooldown: {cooldownTimer}s
+                            </Badge>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Sales Script - Collapsible */}
+          <div style={{ gridArea: 'sales' }} className="space-y-6">
+            <Collapsible open={salesScriptOpen} onOpenChange={setSalesScriptOpen}>
+              <Card className="hover:shadow-lg transition-shadow duration-200">
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="pb-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Sales Script</span>
+                      {salesScriptOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </CardTitle>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent>
+                    <EditableTemplate
+                      title=""
+                      templates={salesScripts}
+                      activeTemplateId={activeSalesScriptId}
+                      customContent={customSalesScript}
+                      onTemplateChange={handleSalesScriptTemplateChange}
+                      onCustomContentChange={handleSalesScriptContentChange}
+                      onSave={handleSalesScriptSave}
+                      placeholder="Enter your custom sales script here..."
+                      contact={currentContact}
+                      processTemplate={templateService.processTemplate.bind(templateService)}
+                      className="border-0 shadow-none"
+                    />
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
+            {/* Text Message Templates - Only show for specific call results */}
+            {showTextTemplates && (
+              <TextTemplateSelector
+                contact={currentContact}
+                onTemplateCopy={handleTemplateCopy}
+              />
+            )}
+          </div>
+
+          {/* Call Disposition */}
+          <div style={{ gridArea: 'disposition' }}>
+            <Card className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader className="pb-4">
+                <CardTitle>Call Disposition</CardTitle>
+                <CardDescription>Log the outcome of your call</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="disposition" className="text-sm font-medium">Call Result</Label>
+                    <Select value={callDisposition} onValueChange={handleDispositionChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select call outcome" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vm">📠 VM 📠</SelectItem>
+                        <SelectItem value="contact">🗣️ Contact 🗣️</SelectItem>
+                        <SelectItem value="no-vm">✖️ No VM ✖️</SelectItem>
+                        <SelectItem value="cold-text">📱 Cold-Text 📱</SelectItem>
+                        <SelectItem value="not-interested">Not Interested</SelectItem>
+                        <SelectItem value="dnc">❌ DNC ❌</SelectItem>
+                        <SelectItem value="email">📧 Email 📧</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="notes" className="text-sm font-medium">Call Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={callNotes}
+                      onChange={(e) => setCallNotes(e.target.value)}
+                      placeholder="Add any relevant notes about the call..."
+                      rows={4}
+                      className="resize-none leading-relaxed"
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={submitDisposition} 
+                    className="w-full hover:scale-105 transition-transform" 
+                    disabled={!callDisposition}
+                  >
+                    Submit & Next Contact
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
