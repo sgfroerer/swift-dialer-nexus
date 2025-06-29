@@ -274,9 +274,9 @@ export const AgentInterface = () => {
   const completionPercentage = totalContacts > 0 ? ((sessionStats.callsMade || 0) / totalContacts) * 100 : 0;
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex w-full min-h-screen bg-gray-50 -mx-6 lg:-mx-8">
       {/* Collapsible Left Sidebar */}
-      <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col`}>
+      <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col flex-shrink-0`}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           {!sidebarCollapsed && (
@@ -478,11 +478,11 @@ export const AgentInterface = () => {
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 p-8">
-        <div className="grid grid-cols-2 gap-8 h-full max-w-none">
+      {/* Main Content Area - Full Width */}
+      <div className="flex-1 min-w-0 p-6 lg:p-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 h-full w-full">
           {/* Left Column - Contact & Controls */}
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {/* Contact Information */}
             <Card className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="pb-4">
@@ -599,7 +599,7 @@ export const AgentInterface = () => {
           </div>
 
           {/* Right Column - Sales Script & Call Disposition */}
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {/* Sales Script - Collapsible */}
             <Collapsible open={salesScriptOpen} onOpenChange={setSalesScriptOpen}>
               <Card className="hover:shadow-lg transition-shadow duration-200">
