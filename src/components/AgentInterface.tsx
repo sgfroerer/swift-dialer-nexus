@@ -68,15 +68,13 @@ export const AgentInterface = () => {
     }
   ] : [];
 
-  const salesScript = currentContact ? `
-    Hi ${currentContact.name}, this is Sam Gfroerer from M&M Real Estate Investment Services.
-    
-    I'm calling because I specialize in helping property owners like yourself maximize returns on retail investment properties, particularly ${currentContact.propertyType} investments.
-    
-    I noticed you own property with ${currentContact.company}, and I'd love to discuss some strategies that have helped my other clients increase their property values by 15-30%.
-    
-    Do you have 3 minutes to discuss how this could benefit your portfolio?
-  ` : "";
+  const salesScript = currentContact ? `Hi ${currentContact.name}, this is Sam Gfroerer from M&M Real Estate Investment Services.
+
+I'm calling because I specialize in helping property owners like yourself maximize returns on retail investment properties, particularly ${currentContact.propertyType} investments.
+
+I noticed you own property with ${currentContact.company}, and I'd love to discuss some strategies that have helped my other clients increase their property values by 15-30%.
+
+Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -269,7 +267,7 @@ export const AgentInterface = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
       {/* Left Sidebar - Gamification */}
       <div className="lg:col-span-1 space-y-6">
         <AgentGamification sessionStats={sessionStats} />
@@ -278,7 +276,7 @@ export const AgentInterface = () => {
       {/* Contact Information */}
       <div className="lg:col-span-1 space-y-6">
         <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5" />
@@ -289,15 +287,15 @@ export const AgentInterface = () => {
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg">{currentContact.name}</h3>
-                <p className="text-gray-600">{currentContact.company}</p>
+                <h3 className="font-semibold text-lg leading-tight">{currentContact.name}</h3>
+                <p className="text-gray-600 mt-1 leading-relaxed">{currentContact.company}</p>
                 {currentContact.propertyType && (
-                  <p className="text-sm text-blue-600">Property: {currentContact.propertyType}</p>
+                  <p className="text-sm text-blue-600 mt-2">Property: {currentContact.propertyType}</p>
                 )}
-                <div className="flex items-center space-x-2 mt-2">
+                <div className="flex items-center space-x-2 mt-3">
                   <Badge variant={currentContact.status === 'pending' ? 'default' : 'secondary'}>
                     {currentContact.status}
                   </Badge>
@@ -309,14 +307,14 @@ export const AgentInterface = () => {
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Phone className="h-4 w-4 text-gray-500" />
                   <span className="text-sm">{currentContact.phone}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm">📧</span>
-                  <span className="text-sm">{currentContact.email}</span>
+                  <span className="text-sm break-all">{currentContact.email}</span>
                 </div>
                 {currentContact.lastCalled && (
                   <div className="flex items-center space-x-2">
@@ -327,9 +325,9 @@ export const AgentInterface = () => {
               </div>
 
               {currentContact.notes && (
-                <div>
+                <div className="pt-2 border-t">
                   <Label className="text-sm font-medium">Notes:</Label>
-                  <p className="text-sm text-gray-600 mt-1">{currentContact.notes}</p>
+                  <p className="text-sm text-gray-600 mt-2 leading-relaxed">{currentContact.notes}</p>
                 </div>
               )}
             </div>
@@ -342,11 +340,11 @@ export const AgentInterface = () => {
         {/* Session Stats */}
         {sessionActive && (
           <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-sm">Session Stats</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2 text-sm">
+              <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span>Calls Made:</span>
                   <span className="font-medium">{sessionStats.callsMade}</span>
@@ -374,7 +372,7 @@ export const AgentInterface = () => {
 
         {/* Call Controls */}
         <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle>Call Controls</CardTitle>
           </CardHeader>
           <CardContent>
@@ -427,18 +425,20 @@ export const AgentInterface = () => {
       </div>
 
       {/* Main Interface */}
-      <div className="lg:col-span-3 space-y-6">
+      <div className="lg:col-span-3 space-y-8">
         {/* Sales Script */}
         <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle>Sales Script</CardTitle>
             <CardDescription>Use this script as a guide for your call</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-blue-50 p-6 rounded-lg">
-              <pre className="whitespace-pre-wrap text-sm font-mono text-blue-900 leading-relaxed">
-                {salesScript}
-              </pre>
+            <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
+              <div className="prose prose-sm max-w-none">
+                <div className="text-blue-900 leading-relaxed whitespace-pre-line font-sans text-sm">
+                  {salesScript}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -446,7 +446,7 @@ export const AgentInterface = () => {
         {/* Text Message Templates */}
         {showTextTemplates && (
           <Card className="hover:shadow-lg transition-shadow duration-200 animate-in slide-in-from-top-2">
-            <CardHeader>
+            <CardHeader className="pb-4">
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquare className="h-5 w-5" />
                 <span>Text Message Templates</span>
@@ -456,11 +456,11 @@ export const AgentInterface = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {textTemplates.map((template) => (
-                  <div key={template.id} className="border rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-sm text-green-800">{template.name}</h4>
+                  <div key={template.id} className="border rounded-lg p-6 bg-green-50 hover:bg-green-100 transition-colors">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="font-medium text-green-800">{template.name}</h4>
                       <Button
                         size="sm"
                         variant="outline"
@@ -471,14 +471,16 @@ export const AgentInterface = () => {
                         Copy
                       </Button>
                     </div>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {template.template}
-                    </p>
+                    <div className="prose prose-sm max-w-none">
+                      <p className="text-gray-700 leading-relaxed font-sans text-sm whitespace-pre-line">
+                        {template.template}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700">
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-sm text-blue-700 leading-relaxed">
                   💡 <strong>Tip:</strong> Copy the template, then paste it into Microsoft Phone Link to send as a text message to {currentContact.name} at {currentContact.phone}
                 </p>
               </div>
@@ -488,16 +490,16 @@ export const AgentInterface = () => {
 
         {/* Call Disposition */}
         <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle>Call Disposition</CardTitle>
             <CardDescription>Log the outcome of your call</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              <div>
-                <Label htmlFor="disposition">Call Result</Label>
+              <div className="space-y-3">
+                <Label htmlFor="disposition" className="text-sm font-medium">Call Result</Label>
                 <Select value={callDisposition} onValueChange={handleDispositionChange}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select call outcome" />
                   </SelectTrigger>
                   <SelectContent>
@@ -513,14 +515,15 @@ export const AgentInterface = () => {
                 </Select>
               </div>
 
-              <div>
-                <Label htmlFor="notes">Call Notes</Label>
+              <div className="space-y-3">
+                <Label htmlFor="notes" className="text-sm font-medium">Call Notes</Label>
                 <Textarea
                   id="notes"
                   value={callNotes}
                   onChange={(e) => setCallNotes(e.target.value)}
                   placeholder="Add any relevant notes about the call..."
                   rows={4}
+                  className="resize-none leading-relaxed"
                 />
               </div>
 
