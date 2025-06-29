@@ -267,14 +267,14 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
       {/* Left Sidebar - Gamification */}
-      <div className="lg:col-span-1 space-y-6">
+      <div className="xl:col-span-3 space-y-6">
         <AgentGamification sessionStats={sessionStats} />
       </div>
 
       {/* Contact Information */}
-      <div className="lg:col-span-1 space-y-6">
+      <div className="xl:col-span-3 space-y-6">
         <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center justify-between">
@@ -425,7 +425,7 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
       </div>
 
       {/* Main Interface */}
-      <div className="lg:col-span-3 space-y-8">
+      <div className="xl:col-span-6 space-y-8">
         {/* Sales Script */}
         <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="pb-4">
