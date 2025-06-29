@@ -9,6 +9,7 @@ import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, Copy, MessageSqua
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
 import { CallingWidget } from "@/components/CallingWidget";
+import { AgentGamification } from "@/components/AgentGamification";
 
 interface TextTemplate {
   id: string;
@@ -268,17 +269,22 @@ export const AgentInterface = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      {/* Left Sidebar - Gamification */}
+      <div className="lg:col-span-1 space-y-6">
+        <AgentGamification sessionStats={sessionStats} />
+      </div>
+
       {/* Contact Information */}
       <div className="lg:col-span-1 space-y-6">
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <User className="h-5 w-5" />
                 <span>Current Contact</span>
               </div>
-              <Button variant="outline" size="sm" onClick={skipContact}>
+              <Button variant="outline" size="sm" onClick={skipContact} className="hover:scale-105 transition-transform">
                 <SkipForward className="h-4 w-4" />
               </Button>
             </CardTitle>
@@ -335,7 +341,7 @@ export const AgentInterface = () => {
 
         {/* Session Stats */}
         {sessionActive && (
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader>
               <CardTitle className="text-sm">Session Stats</CardTitle>
             </CardHeader>
@@ -367,7 +373,7 @@ export const AgentInterface = () => {
         )}
 
         {/* Call Controls */}
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Call Controls</CardTitle>
           </CardHeader>
@@ -376,7 +382,7 @@ export const AgentInterface = () => {
               <Button
                 onClick={toggleSession}
                 variant={sessionActive ? "destructive" : "default"}
-                className="w-full"
+                className="w-full hover:scale-105 transition-transform"
               >
                 {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
                 {sessionActive ? "Pause Session" : "Start Session"}
@@ -385,7 +391,7 @@ export const AgentInterface = () => {
               {sessionActive && (
                 <>
                   {!callActive && !isDialing && cooldownTimer === 0 && (
-                    <Button onClick={startDialing} className="w-full">
+                    <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
                       <PhoneCall className="h-4 w-4 mr-2" />
                       Start Call
                     </Button>
@@ -399,7 +405,7 @@ export const AgentInterface = () => {
                   )}
 
                   {callActive && (
-                    <Button onClick={endCall} variant="destructive" className="w-full">
+                    <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
                       <PhoneOff className="h-4 w-4 mr-2" />
                       End Call
                     </Button>
@@ -407,7 +413,7 @@ export const AgentInterface = () => {
 
                   {cooldownTimer > 0 && (
                     <div className="text-center">
-                      <Badge variant="outline" className="bg-yellow-50">
+                      <Badge variant="outline" className="bg-yellow-50 animate-pulse">
                         <Clock className="h-4 w-4 mr-1" />
                         Cooldown: {cooldownTimer}s
                       </Badge>
@@ -421,9 +427,9 @@ export const AgentInterface = () => {
       </div>
 
       {/* Main Interface */}
-      <div className="lg:col-span-2 space-y-6">
+      <div className="lg:col-span-3 space-y-6">
         {/* Sales Script */}
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Sales Script</CardTitle>
             <CardDescription>Use this script as a guide for your call</CardDescription>
@@ -439,7 +445,7 @@ export const AgentInterface = () => {
 
         {/* Text Message Templates */}
         {showTextTemplates && (
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow duration-200 animate-in slide-in-from-top-2">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquare className="h-5 w-5" />
@@ -452,14 +458,14 @@ export const AgentInterface = () => {
             <CardContent>
               <div className="space-y-4">
                 {textTemplates.map((template) => (
-                  <div key={template.id} className="border rounded-lg p-4 bg-green-50">
+                  <div key={template.id} className="border rounded-lg p-4 bg-green-50 hover:bg-green-100 transition-colors">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-sm text-green-800">{template.name}</h4>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => copyToClipboard(template.template, template.name)}
-                        className="text-green-700 border-green-300 hover:bg-green-100"
+                        className="text-green-700 border-green-300 hover:bg-green-100 hover:scale-105 transition-transform"
                       >
                         <Copy className="h-4 w-4 mr-1" />
                         Copy
@@ -481,7 +487,7 @@ export const AgentInterface = () => {
         )}
 
         {/* Call Disposition */}
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader>
             <CardTitle>Call Disposition</CardTitle>
             <CardDescription>Log the outcome of your call</CardDescription>
@@ -518,7 +524,11 @@ export const AgentInterface = () => {
                 />
               </div>
 
-              <Button onClick={submitDisposition} className="w-full" disabled={!callDisposition}>
+              <Button 
+                onClick={submitDisposition} 
+                className="w-full hover:scale-105 transition-transform" 
+                disabled={!callDisposition}
+              >
                 Submit & Next Contact
               </Button>
             </div>

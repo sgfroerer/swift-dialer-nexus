@@ -1,11 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Play, Pause, Square, Users, Phone, Clock, TrendingUp, Target, CheckCircle, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Play, Pause, Square, Users, Phone, Clock, TrendingUp, Target, CheckCircle, XCircle, Eye, Loader2 } from "lucide-react";
 import { contactService } from "@/services/contactService";
+import { useToast } from "@/hooks/use-toast";
 
 interface Campaign {
   id: string;
@@ -15,10 +16,15 @@ interface Campaign {
   completed: number;
   connected: number;
   dialingMode: "predictive" | "adaptive" | "preview";
+  startDate: Date;
+  endDate?: Date;
+  description: string;
+  targetCallsPerDay: number;
+  averageCallDuration: number;
 }
 
 export const CampaignDashboard = () => {
-  const [campaigns] = useState<Campaign[]>([
+  const [campaigns, setCampaigns] = useState<Campaign[]>([
     {
       id: "1",
       name: "Q4 Retail Property Outreach",
@@ -26,7 +32,11 @@ export const CampaignDashboard = () => {
       contacts: 500,
       completed: 187,
       connected: 23,
-      dialingMode: "predictive"
+      dialingMode: "predictive",
+      startDate: new Date(2024, 9, 1),
+      description: "Targeting retail property owners for Q4 investment opportunities",
+      targetCallsPerDay: 50,
+      averageCallDuration: 180
     },
     {
       id: "2", 
@@ -35,7 +45,11 @@ export const CampaignDashboard = () => {
       contacts: 250,
       completed: 89,
       connected: 12,
-      dialingMode: "adaptive"
+      dialingMode: "adaptive",
+      startDate: new Date(2024, 8, 15),
+      description: "Focus on shopping center and mall property owners",
+      targetCallsPerDay: 30,
+      averageCallDuration: 240
     },
     {
       id: "3",
@@ -44,11 +58,20 @@ export const CampaignDashboard = () => {
       contacts: 100,
       completed: 100,
       connected: 34,
-      dialingMode: "preview"
+      dialingMode: "preview",
+      startDate: new Date(2024, 7, 1),
+      endDate: new Date(2024, 8, 30),
+      description: "Survey of office building owners for market research",
+      targetCallsPerDay: 20,
+      averageCallDuration: 300
     }
   ]);
 
   const [liveStats, setLiveStats] = useState(contactService.getStats());
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [loadingCampaignId, setLoadingCampaignId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Update stats every 5 seconds
   useEffect(() => {
@@ -77,11 +100,51 @@ export const CampaignDashboard = () => {
     }
   };
 
+  const toggleCampaignStatus = async (campaignId: string) => {
+    setLoadingCampaignId(campaignId);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    setCampaigns(prev => prev.map(campaign => {
+      if (campaign.id === campaignId && campaign.status !== "completed") {
+        const newStatus = campaign.status === "active" ? "paused" : "active";
+        
+        toast({
+          title: `Campaign ${newStatus}`,
+          description: `${campaign.name} has been ${newStatus}`,
+        });
+        
+        return { ...campaign, status: newStatus };
+      }
+      return campaign;
+    }));
+    
+    setLoadingCampaignId(null);
+  };
+
+  const viewCampaignDetails = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setIsDetailsOpen(true);
+  };
+
+  const calculateDaysRunning = (startDate: Date, endDate?: Date) => {
+    const end = endDate || new Date();
+    const diffTime = Math.abs(end.getTime() - startDate.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Live Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Contacts</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -101,7 +164,7 @@ export const CampaignDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Calls Today</CardTitle>
             <Phone className="h-4 w-4 text-muted-foreground" />
@@ -114,7 +177,7 @@ export const CampaignDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Connection Rate</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -127,7 +190,7 @@ export const CampaignDashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Do Not Call</CardTitle>
             <XCircle className="h-4 w-4 text-muted-foreground" />
@@ -140,7 +203,7 @@ export const CampaignDashboard = () => {
       </div>
 
       {/* Contact Status Breakdown */}
-      <Card>
+      <Card className="hover:shadow-lg transition-shadow duration-200">
         <CardHeader>
           <CardTitle>Contact Status Overview</CardTitle>
           <CardDescription>Real-time breakdown of contact status in your lists</CardDescription>
@@ -195,7 +258,7 @@ export const CampaignDashboard = () => {
       </Card>
 
       {/* Campaigns List */}
-      <Card>
+      <Card className="hover:shadow-lg transition-shadow duration-200">
         <CardHeader>
           <CardTitle>Active Campaigns</CardTitle>
           <CardDescription>Manage your calling campaigns and monitor progress</CardDescription>
@@ -218,6 +281,7 @@ export const CampaignDashboard = () => {
                     <span>{campaign.contacts} contacts</span>
                     <span>{campaign.completed} completed</span>
                     <span>{campaign.connected} connected</span>
+                    <span>{calculateDaysRunning(campaign.startDate, campaign.endDate)} days running</span>
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -232,18 +296,31 @@ export const CampaignDashboard = () => {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  {campaign.status === "active" ? (
-                    <Button variant="outline" size="sm">
-                      <Pause className="h-4 w-4 mr-1" />
-                      Pause
+                  {campaign.status !== "completed" && (
+                    <Button 
+                      variant={campaign.status === "active" ? "destructive" : "default"}
+                      size="sm"
+                      onClick={() => toggleCampaignStatus(campaign.id)}
+                      disabled={loadingCampaignId === campaign.id}
+                      className="hover:scale-105 transition-transform"
+                    >
+                      {loadingCampaignId === campaign.id ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : campaign.status === "active" ? (
+                        <Pause className="h-4 w-4 mr-1" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-1" />
+                      )}
+                      {campaign.status === "active" ? "Pause" : "Resume"}
                     </Button>
-                  ) : campaign.status === "paused" ? (
-                    <Button variant="default" size="sm">
-                      <Play className="h-4 w-4 mr-1" />
-                      Resume
-                    </Button>
-                  ) : null}
-                  <Button variant="outline" size="sm">
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => viewCampaignDetails(campaign)}
+                    className="hover:scale-105 transition-transform"
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
                     View Details
                   </Button>
                 </div>
@@ -252,6 +329,94 @@ export const CampaignDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Campaign Details Modal */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <span>{selectedCampaign?.name}</span>
+              <Badge variant="outline" className={`${getStatusColor(selectedCampaign?.status || '')} text-white border-0`}>
+                {getStatusIcon(selectedCampaign?.status || '')}
+                <span className="ml-1 capitalize">{selectedCampaign?.status}</span>
+              </Badge>
+            </DialogTitle>
+            <DialogDescription>
+              {selectedCampaign?.description}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedCampaign && (
+            <div className="space-y-6">
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{selectedCampaign.contacts}</div>
+                  <div className="text-sm text-gray-600">Total Contacts</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{selectedCampaign.completed}</div>
+                  <div className="text-sm text-gray-600">Completed</div>
+                </div>
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">{selectedCampaign.connected}</div>
+                  <div className="text-sm text-gray-600">Connected</div>
+                </div>
+                <div className="text-center p-3 bg-orange-50 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {Math.round((selectedCampaign.connected / selectedCampaign.completed) * 100) || 0}%
+                  </div>
+                  <div className="text-sm text-gray-600">Success Rate</div>
+                </div>
+              </div>
+
+              {/* Campaign Settings */}
+              <div className="space-y-4">
+                <h4 className="font-medium">Campaign Settings</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Dialing Mode:</span>
+                    <span className="ml-2 font-medium capitalize">{selectedCampaign.dialingMode}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Target Calls/Day:</span>
+                    <span className="ml-2 font-medium">{selectedCampaign.targetCallsPerDay}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Start Date:</span>
+                    <span className="ml-2 font-medium">{selectedCampaign.startDate.toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Avg Call Duration:</span>
+                    <span className="ml-2 font-medium">{formatDuration(selectedCampaign.averageCallDuration)}</span>
+                  </div>
+                  {selectedCampaign.endDate && (
+                    <div>
+                      <span className="text-gray-600">End Date:</span>
+                      <span className="ml-2 font-medium">{selectedCampaign.endDate.toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-gray-600">Days Running:</span>
+                    <span className="ml-2 font-medium">
+                      {calculateDaysRunning(selectedCampaign.startDate, selectedCampaign.endDate)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Campaign Progress</span>
+                  <span>{Math.round((selectedCampaign.completed / selectedCampaign.contacts) * 100)}%</span>
+                </div>
+                <Progress value={(selectedCampaign.completed / selectedCampaign.contacts) * 100} className="h-3" />
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
