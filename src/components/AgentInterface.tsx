@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw, ChevronDown, ChevronUp, Target, TrendingUp, Award, Trophy } from "lucide-react";
+import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw, ChevronDown, ChevronUp, Target, TrendingUp, Award, Trophy, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
 import { templateService } from "@/services/templateService";
@@ -28,7 +28,8 @@ export const AgentInterface = () => {
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [sessionStats, setSessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
   
-  // Collapsible states
+  // Sidebar and collapsible states
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [salesScriptOpen, setSalesScriptOpen] = useState(true);
   const [liveMetricsOpen, setLiveMetricsOpen] = useState(true);
   const [achievementsOpen, setAchievementsOpen] = useState(true);
@@ -273,167 +274,216 @@ export const AgentInterface = () => {
   const completionPercentage = totalContacts > 0 ? ((sessionStats.callsMade || 0) / totalContacts) * 100 : 0;
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left Sidebar - Campaign Progress, Live Metrics, Achievements, Performance */}
-      <div className="w-80 bg-gray-50 border-r border-gray-200 p-4 space-y-4 overflow-y-auto">
-        {/* Campaign Progress */}
-        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2 text-lg">
-              <Target className="h-5 w-5 text-blue-600" />
-              <span>Campaign Progress</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Call {sessionStats.callsMade || 0} of {totalContacts}</span>
-              <span className="text-sm text-gray-600">{Math.round(completionPercentage)}%</span>
-            </div>
-            <Progress value={completionPercentage} className="h-3" />
-            
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="text-center p-3 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-green-600">{sessionStats.connected || 0}</div>
-                <div className="text-xs text-gray-600">Connected</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded-lg border">
-                <div className="text-2xl font-bold text-blue-600">
-                  {sessionStats.callsMade > 0 ? Math.round(((sessionStats.connected || 0) / sessionStats.callsMade) * 100) : 0}%
-                </div>
-                <div className="text-xs text-gray-600">Success Rate</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Collapsible Left Sidebar */}
+      <div className={`${sidebarCollapsed ? 'w-16' : 'w-80'} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col`}>
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          {!sidebarCollapsed && (
+            <h2 className="font-semibold text-gray-800">Campaign Stats</h2>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hover:bg-gray-100"
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
 
-        {/* Live Metrics - Collapsible */}
-        <Collapsible open={liveMetricsOpen} onOpenChange={setLiveMetricsOpen}>
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                <CardTitle className="flex items-center justify-between text-lg">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-5 w-5 text-green-600" />
-                    <span>Live Metrics</span>
+        {/* Sidebar Content */}
+        <div className={`flex-1 overflow-y-auto ${sidebarCollapsed ? 'p-2' : 'p-4'} space-y-4`}>
+          {sidebarCollapsed ? (
+            // Collapsed sidebar - icon only view
+            <div className="space-y-4">
+              <div className="flex flex-col items-center space-y-2">
+                <Target className="h-6 w-6 text-blue-600" />
+                <div className="text-xs text-center">
+                  <div className="font-bold">{sessionStats.callsMade || 0}</div>
+                  <div className="text-gray-500">Calls</div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-2">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+                <div className="text-xs text-center">
+                  <div className="font-bold">{sessionStats.connected || 0}</div>
+                  <div className="text-gray-500">Connected</div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-2">
+                <Award className="h-6 w-6 text-yellow-600" />
+                <div className="text-xs text-center">
+                  <div className="font-bold">0</div>
+                  <div className="text-gray-500">Achievements</div>
+                </div>
+              </div>
+              <div className="flex flex-col items-center space-y-2">
+                <Trophy className="h-6 w-6 text-purple-600" />
+                <div className="text-xs text-center">
+                  <div className="font-bold">{sessionStats.callsMade > 0 ? Math.round(((sessionStats.connected || 0) / sessionStats.callsMade) * 100) : 0}%</div>
+                  <div className="text-gray-500">Rate</div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Expanded sidebar - full view
+            <>
+              {/* Campaign Progress */}
+              <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <Target className="h-5 w-5 text-blue-600" />
+                    <span>Campaign Progress</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Call {sessionStats.callsMade || 0} of {totalContacts}</span>
+                    <span className="text-sm text-gray-600">{Math.round(completionPercentage)}%</span>
                   </div>
-                  {liveMetricsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CardTitle>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Session Time</span>
-                  <Badge variant="outline" className="font-mono">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {Math.floor((Date.now() - sessionStats.startTime.getTime()) / 60000)}m
-                  </Badge>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Current Streak</span>
-                  <Badge variant="outline" className="bg-orange-50 border-orange-200">
-                    <span className="mr-1">🔥</span>
-                    0
-                  </Badge>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Best Streak</span>
-                  <Badge variant="outline" className="bg-purple-50 border-purple-200">
-                    <span className="mr-1">⭐</span>
-                    0
-                  </Badge>
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        {/* Achievements - Collapsible */}
-        <Collapsible open={achievementsOpen} onOpenChange={setAchievementsOpen}>
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors">
-                <CardTitle className="flex items-center justify-between text-lg">
-                  <div className="flex items-center space-x-2">
-                    <Award className="h-5 w-5 text-yellow-600" />
-                    <span>Achievements</span>
-                  </div>
-                  {achievementsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CardTitle>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-3">
-                <div className="p-3 rounded-lg border bg-gray-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <div className="p-1 rounded bg-gray-100">
-                        <Phone className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">First Call</div>
-                        <div className="text-xs text-gray-600">Make your first call</div>
-                      </div>
+                  <Progress value={completionPercentage} className="h-3" />
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-2xl font-bold text-green-600">{sessionStats.connected || 0}</div>
+                      <div className="text-xs text-gray-600">Connected</div>
                     </div>
-                    <Badge variant="outline" className="bg-gray-500 text-white border-0 text-xs">
-                      common
-                    </Badge>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span>0/1</span>
-                      <span>0%</span>
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {sessionStats.callsMade > 0 ? Math.round(((sessionStats.connected || 0) / sessionStats.callsMade) * 100) : 0}%
+                      </div>
+                      <div className="text-xs text-gray-600">Success Rate</div>
                     </div>
-                    <Progress value={0} className="h-2" />
                   </div>
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+                </CardContent>
+              </Card>
 
-        {/* Performance */}
-        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2 text-lg">
-              <Trophy className="h-5 w-5 text-yellow-600" />
-              <span>Performance</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">
-                {sessionStats.callsMade > 0 ? Math.round(((sessionStats.connected || 0) / sessionStats.callsMade) * 100) : 0}%
-              </div>
-              <div className="text-sm text-gray-600 mb-4">Connection Rate</div>
-              
-              <div className="space-y-2">
-                {sessionStats.callsMade >= 10 && (
-                  <Badge className="bg-blue-500">Consistent Caller</Badge>
-                )}
-                {(sessionStats.connected || 0) >= 5 && (
-                  <Badge className="bg-green-500">Great Connector</Badge>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              {/* Live Metrics - Collapsible */}
+              <Collapsible open={liveMetricsOpen} onOpenChange={setLiveMetricsOpen}>
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <CardTitle className="flex items-center justify-between text-lg">
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="h-5 w-5 text-green-600" />
+                          <span>Live Metrics</span>
+                        </div>
+                        {liveMetricsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Session Time</span>
+                        <Badge variant="outline" className="font-mono">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {Math.floor((Date.now() - sessionStats.startTime.getTime()) / 60000)}m
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Current Streak</span>
+                        <Badge variant="outline" className="bg-orange-50 border-orange-200">
+                          <span className="mr-1">🔥</span>
+                          0
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Best Streak</span>
+                        <Badge variant="outline" className="bg-purple-50 border-purple-200">
+                          <span className="mr-1">⭐</span>
+                          0
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+
+              {/* Achievements - Collapsible */}
+              <Collapsible open={achievementsOpen} onOpenChange={setAchievementsOpen}>
+                <Card>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                      <CardTitle className="flex items-center justify-between text-lg">
+                        <div className="flex items-center space-x-2">
+                          <Award className="h-5 w-5 text-yellow-600" />
+                          <span>Achievements</span>
+                        </div>
+                        {achievementsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </CardTitle>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="space-y-3">
+                      <div className="p-3 rounded-lg border bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1 rounded bg-gray-100">
+                              <Phone className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm">First Call</div>
+                              <div className="text-xs text-gray-600">Make your first call</div>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-gray-500 text-white border-0 text-xs">
+                            common
+                          </Badge>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>0/1</span>
+                            <span>0%</span>
+                          </div>
+                          <Progress value={0} className="h-2" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Card>
+              </Collapsible>
+
+              {/* Performance */}
+              <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <Trophy className="h-5 w-5 text-yellow-600" />
+                    <span>Performance</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600 mb-2">
+                      {sessionStats.callsMade > 0 ? Math.round(((sessionStats.connected || 0) / sessionStats.callsMade) * 100) : 0}%
+                    </div>
+                    <div className="text-sm text-gray-600 mb-4">Connection Rate</div>
+                    
+                    <div className="space-y-2">
+                      {sessionStats.callsMade >= 10 && (
+                        <Badge className="bg-blue-500">Consistent Caller</Badge>
+                      )}
+                      {(sessionStats.connected || 0) >= 5 && (
+                        <Badge className="bg-green-500">Great Connector</Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 p-6">
-        <div 
-          className="grid gap-6 h-full"
-          style={{
-            gridTemplateColumns: '1fr 1fr',
-            gridTemplateRows: 'auto auto 1fr',
-            gridTemplateAreas: '"contact sales" "controls sales" "disposition sales"'
-          }}
-        >
-          {/* Contact Information */}
-          <div style={{ gridArea: 'contact' }}>
+      <div className="flex-1 p-8">
+        <div className="grid grid-cols-2 gap-8 h-full max-w-none">
+          {/* Left Column - Contact & Controls */}
+          <div className="space-y-6">
+            {/* Contact Information */}
             <Card className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center justify-between">
@@ -490,69 +540,67 @@ export const AgentInterface = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Quick Call Widget */}
+            <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
+            
+            {/* Call Controls */}
+            <Card className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader className="pb-4">
+                <CardTitle>Call Controls</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Button
+                    onClick={toggleSession}
+                    variant={sessionActive ? "destructive" : "default"}
+                    className="w-full hover:scale-105 transition-transform"
+                  >
+                    {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                    {sessionActive ? "Pause Session" : "Start Session"}
+                  </Button>
+
+                  {sessionActive && (
+                    <>
+                      {!callActive && !isDialing && cooldownTimer === 0 && (
+                        <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
+                          <PhoneCall className="h-4 w-4 mr-2" />
+                          Start Call
+                        </Button>
+                      )}
+
+                      {isDialing && (
+                        <Button disabled className="w-full">
+                          <Phone className="h-4 w-4 mr-2 animate-pulse" />
+                          Dialing {currentContact.name}...
+                        </Button>
+                      )}
+
+                      {callActive && (
+                        <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
+                          <PhoneOff className="h-4 w-4 mr-2" />
+                          End Call
+                        </Button>
+                      )}
+
+                      {cooldownTimer > 0 && (
+                        <div className="text-center">
+                          <Badge variant="outline" className="bg-yellow-50 animate-pulse">
+                            <Clock className="h-4 w-4 mr-1" />
+                            Cooldown: {cooldownTimer}s
+                          </Badge>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Call Controls */}
-          <div style={{ gridArea: 'controls' }}>
-            <div className="space-y-4">
-              <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
-              
-              <Card className="hover:shadow-lg transition-shadow duration-200">
-                <CardHeader className="pb-4">
-                  <CardTitle>Call Controls</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Button
-                      onClick={toggleSession}
-                      variant={sessionActive ? "destructive" : "default"}
-                      className="w-full hover:scale-105 transition-transform"
-                    >
-                      {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                      {sessionActive ? "Pause Session" : "Start Session"}
-                    </Button>
-
-                    {sessionActive && (
-                      <>
-                        {!callActive && !isDialing && cooldownTimer === 0 && (
-                          <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
-                            <PhoneCall className="h-4 w-4 mr-2" />
-                            Start Call
-                          </Button>
-                        )}
-
-                        {isDialing && (
-                          <Button disabled className="w-full">
-                            <Phone className="h-4 w-4 mr-2 animate-pulse" />
-                            Dialing {currentContact.name}...
-                          </Button>
-                        )}
-
-                        {callActive && (
-                          <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
-                            <PhoneOff className="h-4 w-4 mr-2" />
-                            End Call
-                          </Button>
-                        )}
-
-                        {cooldownTimer > 0 && (
-                          <div className="text-center">
-                            <Badge variant="outline" className="bg-yellow-50 animate-pulse">
-                              <Clock className="h-4 w-4 mr-1" />
-                              Cooldown: {cooldownTimer}s
-                            </Badge>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Sales Script - Collapsible */}
-          <div style={{ gridArea: 'sales' }} className="space-y-6">
+          {/* Right Column - Sales Script & Call Disposition */}
+          <div className="space-y-6">
+            {/* Sales Script - Collapsible */}
             <Collapsible open={salesScriptOpen} onOpenChange={setSalesScriptOpen}>
               <Card className="hover:shadow-lg transition-shadow duration-200">
                 <CollapsibleTrigger asChild>
@@ -590,10 +638,8 @@ export const AgentInterface = () => {
                 onTemplateCopy={handleTemplateCopy}
               />
             )}
-          </div>
 
-          {/* Call Disposition */}
-          <div style={{ gridArea: 'disposition' }}>
+            {/* Call Disposition - Directly below Sales Script */}
             <Card className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="pb-4">
                 <CardTitle>Call Disposition</CardTitle>
