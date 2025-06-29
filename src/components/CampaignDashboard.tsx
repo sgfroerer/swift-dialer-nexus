@@ -241,7 +241,7 @@ export const CampaignDashboard = () => {
         </Card>
       </div>
 
-      {/* Analytics Charts */}
+      {/* Analytics Charts - First Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Call Volume Chart */}
         <Card className="hover:shadow-lg transition-shadow duration-200">
@@ -303,85 +303,88 @@ export const CampaignDashboard = () => {
         </Card>
       </div>
 
-      {/* Hourly Performance */}
-      <Card className="hover:shadow-lg transition-shadow duration-200">
-        <CardHeader>
-          <CardTitle>Hourly Connection Rate</CardTitle>
-          <CardDescription>Connection rate by hour of the day</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={performanceData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="hour" />
-              <YAxis />
-              <Tooltip formatter={(value) => [`${value}%`, 'Connection Rate']} />
-              <Line 
-                type="monotone" 
-                dataKey="rate" 
-                stroke="#3b82f6" 
-                strokeWidth={3}
-                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Contact Status Breakdown */}
-      <Card className="hover:shadow-lg transition-shadow duration-200">
-        <CardHeader>
-          <CardTitle>Contact Status Overview</CardTitle>
-          <CardDescription>Real-time breakdown of contact status in your lists</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-blue-500">Pending</Badge>
-                <span className="text-sm">Ready to call</span>
+      {/* Analytics Charts - Second Row (Side by Side) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Contact Status Overview */}
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader>
+            <CardTitle>Contact Status Overview</CardTitle>
+            <CardDescription>Real-time breakdown of contact status in your lists</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Badge className="bg-blue-500">Pending</Badge>
+                  <span className="text-sm">Ready to call</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Progress value={(liveStats.contacts.pending / liveStats.contacts.total) * 100} className="w-32" />
+                  <span className="text-sm font-medium">{liveStats.contacts.pending}</span>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Progress value={(liveStats.contacts.pending / liveStats.contacts.total) * 100} className="w-32" />
-                <span className="text-sm font-medium">{liveStats.contacts.pending}</span>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Badge className="bg-green-500">Contacted</Badge>
+                  <span className="text-sm">Successfully reached</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Progress value={(liveStats.contacts.contacted / liveStats.contacts.total) * 100} className="w-32" />
+                  <span className="text-sm font-medium">{liveStats.contacts.contacted}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Badge className="bg-gray-500">Completed</Badge>
+                  <span className="text-sm">Finished processing</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Progress value={(liveStats.contacts.completed / liveStats.contacts.total) * 100} className="w-32" />
+                  <span className="text-sm font-medium">{liveStats.contacts.completed}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="destructive">Do Not Call</Badge>
+                  <span className="text-sm">Excluded from calling</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Progress value={(liveStats.contacts.dnc / liveStats.contacts.total) * 100} className="w-32" />
+                  <span className="text-sm font-medium">{liveStats.contacts.dnc}</span>
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-green-500">Contacted</Badge>
-                <span className="text-sm">Successfully reached</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Progress value={(liveStats.contacts.contacted / liveStats.contacts.total) * 100} className="w-32" />
-                <span className="text-sm font-medium">{liveStats.contacts.contacted}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Badge className="bg-gray-500">Completed</Badge>
-                <span className="text-sm">Finished processing</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Progress value={(liveStats.contacts.completed / liveStats.contacts.total) * 100} className="w-32" />
-                <span className="text-sm font-medium">{liveStats.contacts.completed}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Badge variant="destructive">Do Not Call</Badge>
-                <span className="text-sm">Excluded from calling</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Progress value={(liveStats.contacts.dnc / liveStats.contacts.total) * 100} className="w-32" />
-                <span className="text-sm font-medium">{liveStats.contacts.dnc}</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Hourly Connection Rate */}
+        <Card className="hover:shadow-lg transition-shadow duration-200">
+          <CardHeader>
+            <CardTitle>Hourly Connection Rate</CardTitle>
+            <CardDescription>Connection rate by hour of the day</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={performanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="hour" />
+                <YAxis />
+                <Tooltip formatter={(value) => [`${value}%`, 'Connection Rate']} />
+                <Line 
+                  type="monotone" 
+                  dataKey="rate" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3}
+                  dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Campaigns List */}
       <Card className="hover:shadow-lg transition-shadow duration-200">
