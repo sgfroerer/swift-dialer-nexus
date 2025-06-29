@@ -65,7 +65,7 @@ export const GlobalSidebar = ({ collapsed, onToggle, sessionStats }: GlobalSideb
       </div>
 
       {/* Sidebar Content */}
-      <div className={`flex-1 overflow-y-auto ${collapsed ? 'p-2' : 'p-4'} space-y-6`}>
+      <div className={`flex-1 overflow-y-auto ${collapsed ? 'p-2' : 'p-4'} space-y-4`}>
         {collapsed ? (
           // Collapsed sidebar - icon only view with better spacing
           <div className="space-y-6">
