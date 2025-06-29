@@ -270,7 +270,7 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
     <div 
       className="grid gap-8"
       style={{
-        gridTemplateColumns: 'minmax(280px, 1fr) minmax(320px, 1.2fr) minmax(400px, 1.8fr)',
+        gridTemplateColumns: 'minmax(280px, 1.5fr) minmax(320px, 1.8fr) minmax(400px, 2fr)',
         gridTemplateAreas: '"sidebar contact main"'
       }}
     >
