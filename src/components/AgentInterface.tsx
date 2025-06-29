@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, Copy, MessageSquare, SkipForward, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
+import { CallingWidget } from "@/components/CallingWidget";
 
 interface TextTemplate {
   id: string;
@@ -329,6 +329,9 @@ export const AgentInterface = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Calling Widget */}
+        <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
 
         {/* Session Stats */}
         {sessionActive && (
