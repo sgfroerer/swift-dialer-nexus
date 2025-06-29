@@ -48,7 +48,7 @@ export const GlobalSidebar = ({ collapsed, onToggle, sessionStats }: GlobalSideb
   };
 
   return (
-    <div className={`${collapsed ? 'w-25' : 'w-80'} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col flex-shrink-0 fixed left-0 top-0 h-full z-50 shadow-lg`}>
+    <div className={`${collapsed ? 'w-23' : 'w-80'} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out flex flex-col flex-shrink-0 fixed left-0 top-0 h-full z-50 shadow-lg`}>
       {/* Sidebar Header */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
         {!collapsed && (
