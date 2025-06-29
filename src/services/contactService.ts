@@ -366,9 +366,155 @@ export const sampleContacts: Contact[] = [
   }
 ];
 
+// localStorage keys
+const STORAGE_KEYS = {
+  CONTACTS: 'opendialer_contacts',
+  CALL_HISTORY: 'opendialer_call_history',
+  LAST_BACKUP: 'opendialer_last_backup',
+  VERSION: 'opendialer_version'
+} as const;
+
+const CURRENT_VERSION = '1.0.0';
+
+// Utility functions for localStorage
+const saveToStorage = (key: string, data: any): void => {
+  try {
+    const serialized = JSON.stringify(data, (key, value) => {
+      // Convert Date objects to ISO strings
+      if (value instanceof Date) {
+        return { __type: 'Date', value: value.toISOString() };
+      }
+      return value;
+    });
+    localStorage.setItem(key, serialized);
+  } catch (error) {
+    console.error(`Failed to save to localStorage (${key}):`, error);
+  }
+};
+
+const loadFromStorage = <T>(key: string, defaultValue: T): T => {
+  try {
+    const item = localStorage.getItem(key);
+    if (!item) return defaultValue;
+    
+    const parsed = JSON.parse(item, (key, value) => {
+      // Convert ISO strings back to Date objects
+      if (value && typeof value === 'object' && value.__type === 'Date') {
+        return new Date(value.value);
+      }
+      return value;
+    });
+    
+    return parsed;
+  } catch (error) {
+    console.error(`Failed to load from localStorage (${key}):`, error);
+    return defaultValue;
+  }
+};
+
+const clearStorage = (): void => {
+  try {
+    Object.values(STORAGE_KEYS).forEach(key => {
+      localStorage.removeItem(key);
+    });
+    console.log('✅ localStorage cleared successfully');
+  } catch (error) {
+    console.error('Failed to clear localStorage:', error);
+  }
+};
+
 export class ContactService {
-  private contacts: Contact[] = [...sampleContacts];
+  private contacts: Contact[] = [];
   private callHistory: CallHistory[] = [];
+  private isInitialized = false;
+
+  constructor() {
+    this.initializeData();
+  }
+
+  private initializeData(): void {
+    if (this.isInitialized) return;
+
+    console.log('🔄 Initializing ContactService with localStorage...');
+    
+    // Check version compatibility
+    const storedVersion = loadFromStorage(STORAGE_KEYS.VERSION, null);
+    const isFirstRun = !storedVersion;
+    
+    if (isFirstRun) {
+      console.log('🆕 First run detected - loading sample data');
+      this.contacts = [...sampleContacts];
+      this.callHistory = [];
+      this.saveAllData();
+      saveToStorage(STORAGE_KEYS.VERSION, CURRENT_VERSION);
+    } else {
+      console.log('📂 Loading existing data from localStorage');
+      this.contacts = loadFromStorage(STORAGE_KEYS.CONTACTS, [...sampleContacts]);
+      this.callHistory = loadFromStorage(STORAGE_KEYS.CALL_HISTORY, []);
+      
+      // Validate data integrity
+      this.validateAndRepairData();
+    }
+
+    this.isInitialized = true;
+    console.log(`✅ ContactService initialized with ${this.contacts.length} contacts and ${this.callHistory.length} call records`);
+  }
+
+  private validateAndRepairData(): void {
+    let repaired = false;
+
+    // Ensure all contacts have required fields
+    this.contacts = this.contacts.filter(contact => {
+      if (!contact.id || !contact.name || !contact.phone) {
+        console.warn('🔧 Removing invalid contact:', contact);
+        repaired = true;
+        return false;
+      }
+      
+      // Ensure callCount is a number
+      if (typeof contact.callCount !== 'number') {
+        contact.callCount = 0;
+        repaired = true;
+      }
+      
+      // Ensure status is valid
+      if (!['pending', 'contacted', 'completed', 'dnc'].includes(contact.status)) {
+        contact.status = 'pending';
+        repaired = true;
+      }
+      
+      return true;
+    });
+
+    // Validate call history
+    this.callHistory = this.callHistory.filter(call => {
+      if (!call.id || !call.contactId || !call.timestamp) {
+        console.warn('🔧 Removing invalid call record:', call);
+        repaired = true;
+        return false;
+      }
+      return true;
+    });
+
+    if (repaired) {
+      console.log('🔧 Data repaired and saved');
+      this.saveAllData();
+    }
+  }
+
+  private saveAllData(): void {
+    saveToStorage(STORAGE_KEYS.CONTACTS, this.contacts);
+    saveToStorage(STORAGE_KEYS.CALL_HISTORY, this.callHistory);
+    saveToStorage(STORAGE_KEYS.LAST_BACKUP, new Date().toISOString());
+  }
+
+  private saveContacts(): void {
+    saveToStorage(STORAGE_KEYS.CONTACTS, this.contacts);
+  }
+
+  private saveCallHistory(): void {
+    saveToStorage(STORAGE_KEYS.CALL_HISTORY, this.callHistory);
+  }
 
   getContacts(status?: Contact['status']): Contact[] {
     if (status) {
@@ -397,7 +543,53 @@ export class ContactService {
     const index = this.contacts.findIndex(c => c.id === contactId);
     if (index !== -1) {
       this.contacts[index] = { ...this.contacts[index], ...updates };
+      this.saveContacts();
+      console.log(`📝 Contact updated: ${this.contacts[index].name}`);
     }
+  }
+
+  addContact(contact: Omit<Contact, 'id'>): Contact {
+    const newContact: Contact = {
+      ...contact,
+      id: `contact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      callCount: contact.callCount || 0,
+      status: contact.status || 'pending'
+    };
+    
+    this.contacts.push(newContact);
+    this.saveContacts();
+    console.log(`➕ Contact added: ${newContact.name}`);
+    return newContact;
+  }
+
+  addContacts(contacts: Omit<Contact, 'id'>[]): Contact[] {
+    const newContacts = contacts.map(contact => ({
+      ...contact,
+      id: `contact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      callCount: contact.callCount || 0,
+      status: contact.status || 'pending' as Contact['status']
+    }));
+    
+    this.contacts.push(...newContacts);
+    this.saveContacts();
+    console.log(`➕ ${newContacts.length} contacts added`);
+    return newContacts;
+  }
+
+  deleteContact(contactId: string): boolean {
+    const index = this.contacts.findIndex(c => c.id === contactId);
+    if (index !== -1) {
+      const deletedContact = this.contacts[index];
+      this.contacts.splice(index, 1);
+      
+      // Also remove related call history
+      this.callHistory = this.callHistory.filter(call => call.contactId !== contactId);
+      
+      this.saveAllData();
+      console.log(`🗑️ Contact deleted: ${deletedContact.name}`);
+      return true;
+    }
+    return false;
   }
 
   logCall(contactId: string, disposition: string, notes: string, outcome: CallHistory['outcome'], duration: number = 0): void {
@@ -409,22 +601,27 @@ export class ContactService {
       contact.disposition = disposition;
       
       // Update status based on disposition
-      if (disposition === 'do-not-call') {
+      if (disposition === 'dnc') {
         contact.status = 'dnc';
-      } else if (['connected', 'callback'].includes(disposition)) {
+      } else if (['contact', 'callback'].includes(disposition)) {
         contact.status = 'contacted';
       }
 
       // Log call history
-      this.callHistory.push({
-        id: Date.now().toString(),
+      const callRecord: CallHistory = {
+        id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         contactId,
         timestamp: new Date(),
         duration,
         disposition,
         notes,
         outcome
-      });
+      };
+      
+      this.callHistory.push(callRecord);
+      this.saveAllData();
+      
+      console.log(`📞 Call logged for ${contact.name}: ${disposition}`);
     }
   }
 
@@ -451,6 +648,108 @@ export class ContactService {
       calls: { total: totalCalls, connected, connectionRate: Math.round(connectionRate) }
     };
   }
+
+  // Data management methods
+  exportData(): string {
+    const exportData = {
+      version: CURRENT_VERSION,
+      timestamp: new Date().toISOString(),
+      contacts: this.contacts,
+      callHistory: this.callHistory
+    };
+    
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  importData(jsonData: string): { success: boolean; message: string; imported?: { contacts: number; calls: number } } {
+    try {
+      const data = JSON.parse(jsonData);
+      
+      if (!data.contacts || !Array.isArray(data.contacts)) {
+        return { success: false, message: 'Invalid data format: missing contacts array' };
+      }
+
+      // Backup current data
+      const backup = {
+        contacts: [...this.contacts],
+        callHistory: [...this.callHistory]
+      };
+
+      // Import contacts
+      const importedContacts = data.contacts.map((contact: any) => ({
+        ...contact,
+        id: contact.id || `imported_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        lastCalled: contact.lastCalled ? new Date(contact.lastCalled) : undefined
+      }));
+
+      // Import call history
+      const importedCalls = (data.callHistory || []).map((call: any) => ({
+        ...call,
+        id: call.id || `imported_call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date(call.timestamp)
+      }));
+
+      // Replace data
+      this.contacts = importedContacts;
+      this.callHistory = importedCalls;
+      
+      // Validate and save
+      this.validateAndRepairData();
+      this.saveAllData();
+
+      console.log(`📥 Data imported: ${importedContacts.length} contacts, ${importedCalls.length} calls`);
+      
+      return {
+        success: true,
+        message: 'Data imported successfully',
+        imported: {
+          contacts: importedContacts.length,
+          calls: importedCalls.length
+        }
+      };
+    } catch (error) {
+      console.error('Import failed:', error);
+      return { success: false, message: `Import failed: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    }
+  }
+
+  resetToSampleData(): void {
+    this.contacts = [...sampleContacts];
+    this.callHistory = [];
+    this.saveAllData();
+    console.log('🔄 Data reset to sample data');
+  }
+
+  clearAllData(): void {
+    this.contacts = [];
+    this.callHistory = [];
+    clearStorage();
+    console.log('🗑️ All data cleared');
+  }
+
+  getStorageInfo(): { size: string; lastBackup: string; contacts: number; calls: number } {
+    const contactsSize = JSON.stringify(this.contacts).length;
+    const callsSize = JSON.stringify(this.callHistory).length;
+    const totalSize = contactsSize + callsSize;
+    
+    const lastBackup = loadFromStorage(STORAGE_KEYS.LAST_BACKUP, null);
+    
+    return {
+      size: `${(totalSize / 1024).toFixed(2)} KB`,
+      lastBackup: lastBackup ? new Date(lastBackup).toLocaleString() : 'Never',
+      contacts: this.contacts.length,
+      calls: this.callHistory.length
+    };
+  }
 }
 
 export const contactService = new ContactService();
+
+// Export utility functions for external use
+export const storageUtils = {
+  exportData: () => contactService.exportData(),
+  importData: (data: string) => contactService.importData(data),
+  resetToSampleData: () => contactService.resetToSampleData(),
+  clearAllData: () => contactService.clearAllData(),
+  getStorageInfo: () => contactService.getStorageInfo()
+};
