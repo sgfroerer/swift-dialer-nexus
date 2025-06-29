@@ -5,13 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, Copy, MessageSquare, SkipForward, RefreshCw } from "lucide-react";
+import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
 import { templateService } from "@/services/templateService";
 import { CallingWidget } from "@/components/CallingWidget";
 import { AgentGamification } from "@/components/AgentGamification";
 import { EditableTemplate } from "@/components/EditableTemplate";
+import { TextTemplateSelector } from "@/components/TextTemplateSelector";
 
 export const AgentInterface = () => {
   const [isDialing, setIsDialing] = useState(false);
@@ -27,7 +28,6 @@ export const AgentInterface = () => {
   
   // Template states
   const [salesScripts, setSalesScripts] = useState(templateService.getSalesScripts());
-  const [textTemplates, setTextTemplates] = useState(templateService.getTextTemplates());
   const [activeSalesScriptId, setActiveSalesScriptId] = useState(templateService.getActiveSalesScript()?.id || 'default-retail');
   const [customSalesScript, setCustomSalesScript] = useState(templateService.getCustomSalesScript());
   
@@ -146,20 +146,19 @@ export const AgentInterface = () => {
     setShowTextTemplates(['vm', 'no-vm', 'cold-text', 'email'].includes(value));
   };
 
-  const copyToClipboard = async (text: string, templateName: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+  const handleTemplateCopy = (content: string, templateName: string) => {
+    navigator.clipboard.writeText(content).then(() => {
       toast({
         title: "Copied to clipboard",
         description: `${templateName} template copied successfully`,
       });
-    } catch (error) {
+    }).catch(() => {
       toast({
         title: "Copy failed",
         description: "Please copy the text manually",
         variant: "destructive"
       });
-    }
+    });
   };
 
   const submitDisposition = () => {
@@ -241,10 +240,6 @@ export const AgentInterface = () => {
 
   const handleSalesScriptSave = () => {
     templateService.saveCustomSalesScript(customSalesScript);
-  };
-
-  const handleTextTemplateSave = (templateId: string, content: string) => {
-    templateService.saveCustomTextTemplate(templateId, content);
   };
 
   if (!currentContact) {
@@ -448,54 +443,10 @@ export const AgentInterface = () => {
 
         {/* Text Message Templates - Only show for specific call results */}
         {showTextTemplates && (
-          <Card className="hover:shadow-lg transition-shadow duration-200 animate-in slide-in-from-top-2">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="h-5 w-5" />
-                <span>Text Message Templates</span>
-              </CardTitle>
-              <CardDescription>
-                Copy templates below to send via Phone Link after missed calls
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {textTemplates.map((template) => {
-                  const processedContent = templateService.processTemplate(
-                    templateService.getCurrentTextTemplate(template.id) || template.content,
-                    currentContact
-                  );
-                  
-                  return (
-                    <div key={template.id} className="border rounded-lg p-6 bg-green-50 hover:bg-green-100 transition-colors">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-medium text-green-800">{template.name}</h4>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(processedContent, template.name)}
-                          className="text-green-700 border-green-300 hover:bg-green-100 hover:scale-105 transition-transform flex-shrink-0"
-                        >
-                          <Copy className="h-4 w-4 mr-1" />
-                          Copy
-                        </Button>
-                      </div>
-                      <div className="prose prose-sm max-w-none">
-                        <p className="text-gray-700 leading-relaxed font-sans text-sm whitespace-pre-wrap break-words">
-                          {processedContent}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-sm text-blue-700 leading-relaxed break-words">
-                  💡 <strong>Tip:</strong> Copy the template, then paste it into Microsoft Phone Link to send as a text message to {currentContact.name} at {currentContact.phone}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <TextTemplateSelector
+            contact={currentContact}
+            onTemplateCopy={handleTemplateCopy}
+          />
         )}
 
         {/* Call Disposition */}
