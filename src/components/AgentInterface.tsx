@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
 import { templateService } from "@/services/templateService";
@@ -25,6 +25,7 @@ export const AgentInterface = () => {
   const [currentContact, setCurrentContact] = useState<Contact | null>(null);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [sessionStats, setSessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
+  const [isLoadingContact, setIsLoadingContact] = useState(false);
   
   // Collapsible states
   const [salesScriptOpen, setSalesScriptOpen] = useState(true);
@@ -41,18 +42,37 @@ export const AgentInterface = () => {
     loadNextContact();
   }, []);
 
-  const loadNextContact = () => {
-    const nextContact = contactService.getNextContact();
-    if (nextContact) {
-      setCurrentContact(nextContact);
-      setCallNotes("");
-      setCallDisposition("");
-      setShowTextTemplates(false);
-    } else {
+  const loadNextContact = async () => {
+    setIsLoadingContact(true);
+    
+    try {
+      // Add a small delay to ensure any pending operations complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const nextContact = contactService.getNextContact();
+      
+      if (nextContact) {
+        setCurrentContact(nextContact);
+        setCallNotes("");
+        setCallDisposition("");
+        setShowTextTemplates(false);
+        console.log('✅ Loaded next contact:', nextContact.name);
+      } else {
+        setCurrentContact(null);
+        toast({
+          title: "No more contacts",
+          description: "All contacts have been processed",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error loading next contact:', error);
       toast({
-        title: "No more contacts",
-        description: "All contacts have been processed",
+        title: "Error loading contact",
+        description: "Please try refreshing the contact list",
+        variant: "destructive"
       });
+    } finally {
+      setIsLoadingContact(false);
     }
   };
 
@@ -164,7 +184,7 @@ export const AgentInterface = () => {
     });
   };
 
-  const submitDisposition = () => {
+  const submitDisposition = async () => {
     if (!callDisposition || !currentContact) {
       toast({
         title: "Missing disposition",
@@ -174,49 +194,73 @@ export const AgentInterface = () => {
       return;
     }
 
-    // Log the call
-    const outcome = callDisposition === 'contact' ? 'connected' : 
-                   callDisposition === 'vm' ? 'voicemail' :
-                   callDisposition === 'no-vm' ? 'no-answer' :
-                   callDisposition === 'cold-text' ? 'no-answer' :
-                   callDisposition === 'not-interested' ? 'connected' :
-                   callDisposition === 'dnc' ? 'failed' :
-                   callDisposition === 'email' ? 'no-answer' : 'failed';
-    
-    const duration = callStartTime ? Math.floor((Date.now() - callStartTime.getTime()) / 1000) : 0;
-    
-    contactService.logCall(currentContact.id, callDisposition, callNotes, outcome, duration);
-    
-    // Update session stats
-    setSessionStats(prev => ({
-      ...prev,
-      callsMade: prev.callsMade + 1,
-      connected: prev.connected + (outcome === 'connected' ? 1 : 0)
-    }));
+    try {
+      // Log the call
+      const outcome = callDisposition === 'contact' ? 'connected' : 
+                     callDisposition === 'vm' ? 'voicemail' :
+                     callDisposition === 'no-vm' ? 'no-answer' :
+                     callDisposition === 'cold-text' ? 'no-answer' :
+                     callDisposition === 'not-interested' ? 'connected' :
+                     callDisposition === 'dnc' ? 'failed' :
+                     callDisposition === 'email' ? 'no-answer' : 'failed';
+      
+      const duration = callStartTime ? Math.floor((Date.now() - callStartTime.getTime()) / 1000) : 0;
+      
+      contactService.logCall(currentContact.id, callDisposition, callNotes, outcome, duration);
+      
+      // Update session stats
+      setSessionStats(prev => ({
+        ...prev,
+        callsMade: prev.callsMade + 1,
+        connected: prev.connected + (outcome === 'connected' ? 1 : 0)
+      }));
 
-    // Reset form and load next contact
-    setCallNotes("");
-    setCallDisposition("");
-    setShowTextTemplates(false);
-    
-    toast({
-      title: "Call logged successfully",
-      description: "Loading next contact...",
-    });
+      // Reset form
+      setCallNotes("");
+      setCallDisposition("");
+      setShowTextTemplates(false);
+      
+      toast({
+        title: "Call logged successfully",
+        description: "Loading next contact...",
+      });
 
-    // Load next contact after short delay
-    setTimeout(loadNextContact, 1000);
+      // Load next contact
+      await loadNextContact();
+    } catch (error) {
+      console.error('❌ Error submitting disposition:', error);
+      toast({
+        title: "Error logging call",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
   };
 
-  const skipContact = () => {
-    if (!currentContact) return;
+  const skipContact = async () => {
+    if (!currentContact) {
+      toast({
+        title: "No contact to skip",
+        description: "No current contact available",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log('🔄 Skipping contact:', currentContact.name);
     
     toast({
       title: "Contact skipped",
       description: "Loading next contact...",
     });
     
-    loadNextContact();
+    // Clear current state
+    setCallNotes("");
+    setCallDisposition("");
+    setShowTextTemplates(false);
+    
+    // Load next contact
+    await loadNextContact();
   };
 
   const toggleSession = () => {
@@ -245,7 +289,25 @@ export const AgentInterface = () => {
     templateService.saveCustomSalesScript(customSalesScript);
   };
 
-  if (!currentContact) {
+  // Show loading state when no contact and loading
+  if (!currentContact && isLoadingContact) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Loading Contact...</span>
+            </CardTitle>
+            <CardDescription>Please wait while we load the next contact</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show no contacts available state
+  if (!currentContact && !isLoadingContact) {
     return (
       <div className="flex items-center justify-center h-96">
         <Card className="w-96">
@@ -254,8 +316,12 @@ export const AgentInterface = () => {
             <CardDescription>Please import a contact list to begin dialing</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={loadNextContact} className="w-full">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button onClick={loadNextContact} className="w-full" disabled={isLoadingContact}>
+              {isLoadingContact ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               Refresh Contacts
             </Button>
           </CardContent>
@@ -277,23 +343,33 @@ export const AgentInterface = () => {
                   <User className="h-5 w-5" />
                   <span>Current Contact</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={skipContact} className="hover:scale-105 transition-transform">
-                  <SkipForward className="h-4 w-4" />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={skipContact} 
+                  disabled={isLoadingContact}
+                  className="hover:scale-105 transition-transform"
+                >
+                  {isLoadingContact ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SkipForward className="h-4 w-4" />
+                  )}
                 </Button>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg leading-tight break-words">{currentContact.name}</h3>
-                <p className="text-gray-600 mt-1 leading-relaxed break-words">{currentContact.company}</p>
-                {currentContact.propertyType && (
+                <h3 className="font-semibold text-lg leading-tight break-words">{currentContact?.name}</h3>
+                <p className="text-gray-600 mt-1 leading-relaxed break-words">{currentContact?.company}</p>
+                {currentContact?.propertyType && (
                   <p className="text-sm text-blue-600 mt-2 break-words">Property: {currentContact.propertyType}</p>
                 )}
                 <div className="flex items-center space-x-2 mt-3 flex-wrap gap-2">
-                  <Badge variant={currentContact.status === 'pending' ? 'default' : 'secondary'}>
-                    {currentContact.status}
+                  <Badge variant={currentContact?.status === 'pending' ? 'default' : 'secondary'}>
+                    {currentContact?.status}
                   </Badge>
-                  {currentContact.callCount > 0 && (
+                  {currentContact && currentContact.callCount > 0 && (
                     <Badge variant="outline">
                       {currentContact.callCount} calls
                     </Badge>
@@ -304,13 +380,13 @@ export const AgentInterface = () => {
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                  <span className="text-sm break-all">{currentContact.phone}</span>
+                  <span className="text-sm break-all">{currentContact?.phone}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm flex-shrink-0">📧</span>
-                  <span className="text-sm break-all">{currentContact.email}</span>
+                  <span className="text-sm break-all">{currentContact?.email}</span>
                 </div>
-                {currentContact.lastCalled && (
+                {currentContact?.lastCalled && (
                   <div className="flex items-center space-x-2">
                     <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-sm">Last called: {currentContact.lastCalled.toLocaleDateString()}</span>
@@ -318,7 +394,7 @@ export const AgentInterface = () => {
                 )}
               </div>
 
-              {currentContact.notes && (
+              {currentContact?.notes && (
                 <div className="pt-2 border-t">
                   <Label className="text-sm font-medium">Notes:</Label>
                   <p className="text-sm text-gray-600 mt-2 leading-relaxed break-words">{currentContact.notes}</p>
@@ -328,7 +404,9 @@ export const AgentInterface = () => {
           </Card>
 
           {/* Quick Call Widget */}
-          <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
+          {currentContact && (
+            <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
+          )}
           
           {/* Call Controls */}
           <Card className="hover:shadow-lg transition-shadow duration-200">
@@ -358,7 +436,7 @@ export const AgentInterface = () => {
                     {isDialing && (
                       <Button disabled className="w-full">
                         <Phone className="h-4 w-4 mr-2 animate-pulse" />
-                        Dialing {currentContact.name}...
+                        Dialing {currentContact?.name}...
                       </Button>
                     )}
 
@@ -418,7 +496,7 @@ export const AgentInterface = () => {
           </Collapsible>
 
           {/* Text Message Templates - Only show for specific call results */}
-          {showTextTemplates && (
+          {showTextTemplates && currentContact && (
             <TextTemplateSelector
               contact={currentContact}
               onTemplateCopy={handleTemplateCopy}
@@ -466,8 +544,11 @@ export const AgentInterface = () => {
                 <Button 
                   onClick={submitDisposition} 
                   className="w-full hover:scale-105 transition-transform" 
-                  disabled={!callDisposition}
+                  disabled={!callDisposition || isLoadingContact}
                 >
+                  {isLoadingContact ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
                   Submit & Next Contact
                 </Button>
               </div>
