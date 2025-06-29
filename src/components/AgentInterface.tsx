@@ -267,14 +267,20 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+    <div 
+      className="grid gap-8"
+      style={{
+        gridTemplateColumns: 'minmax(280px, 1fr) minmax(320px, 1.2fr) minmax(400px, 1.8fr)',
+        gridTemplateAreas: '"sidebar contact main"'
+      }}
+    >
       {/* Left Sidebar - Gamification */}
-      <div className="xl:col-span-3 space-y-6">
+      <div style={{ gridArea: 'sidebar' }} className="space-y-6 min-w-0">
         <AgentGamification sessionStats={sessionStats} />
       </div>
 
       {/* Contact Information */}
-      <div className="xl:col-span-3 space-y-6">
+      <div style={{ gridArea: 'contact' }} className="space-y-6 min-w-0">
         <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center justify-between">
@@ -290,12 +296,12 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg leading-tight">{currentContact.name}</h3>
-                <p className="text-gray-600 mt-1 leading-relaxed">{currentContact.company}</p>
+                <h3 className="font-semibold text-lg leading-tight break-words">{currentContact.name}</h3>
+                <p className="text-gray-600 mt-1 leading-relaxed break-words">{currentContact.company}</p>
                 {currentContact.propertyType && (
-                  <p className="text-sm text-blue-600 mt-2">Property: {currentContact.propertyType}</p>
+                  <p className="text-sm text-blue-600 mt-2 break-words">Property: {currentContact.propertyType}</p>
                 )}
-                <div className="flex items-center space-x-2 mt-3">
+                <div className="flex items-center space-x-2 mt-3 flex-wrap gap-2">
                   <Badge variant={currentContact.status === 'pending' ? 'default' : 'secondary'}>
                     {currentContact.status}
                   </Badge>
@@ -309,16 +315,16 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
               
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">{currentContact.phone}</span>
+                  <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                  <span className="text-sm break-all">{currentContact.phone}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm">📧</span>
+                  <span className="text-sm flex-shrink-0">📧</span>
                   <span className="text-sm break-all">{currentContact.email}</span>
                 </div>
                 {currentContact.lastCalled && (
                   <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-gray-500" />
+                    <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-sm">Last called: {currentContact.lastCalled.toLocaleDateString()}</span>
                   </div>
                 )}
@@ -327,7 +333,7 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
               {currentContact.notes && (
                 <div className="pt-2 border-t">
                   <Label className="text-sm font-medium">Notes:</Label>
-                  <p className="text-sm text-gray-600 mt-2 leading-relaxed">{currentContact.notes}</p>
+                  <p className="text-sm text-gray-600 mt-2 leading-relaxed break-words">{currentContact.notes}</p>
                 </div>
               )}
             </div>
@@ -425,7 +431,7 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
       </div>
 
       {/* Main Interface */}
-      <div className="xl:col-span-6 space-y-8">
+      <div style={{ gridArea: 'main' }} className="space-y-8 min-w-0">
         {/* Sales Script */}
         <Card className="hover:shadow-lg transition-shadow duration-200">
           <CardHeader className="pb-4">
@@ -435,8 +441,12 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
           <CardContent>
             <div className="bg-blue-50 p-6 rounded-lg border border-blue-100">
               <div className="prose prose-sm max-w-none">
-                <div className="text-blue-900 leading-relaxed whitespace-pre-line font-sans text-sm">
-                  {salesScript}
+                <div className="text-blue-900 leading-relaxed font-sans text-sm whitespace-normal break-words">
+                  {salesScript.split('\n\n').map((paragraph, index) => (
+                    <p key={index} className="mb-4 last:mb-0">
+                      {paragraph}
+                    </p>
+                  ))}
                 </div>
               </div>
             </div>
@@ -465,14 +475,14 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
                         size="sm"
                         variant="outline"
                         onClick={() => copyToClipboard(template.template, template.name)}
-                        className="text-green-700 border-green-300 hover:bg-green-100 hover:scale-105 transition-transform"
+                        className="text-green-700 border-green-300 hover:bg-green-100 hover:scale-105 transition-transform flex-shrink-0"
                       >
                         <Copy className="h-4 w-4 mr-1" />
                         Copy
                       </Button>
                     </div>
                     <div className="prose prose-sm max-w-none">
-                      <p className="text-gray-700 leading-relaxed font-sans text-sm whitespace-pre-line">
+                      <p className="text-gray-700 leading-relaxed font-sans text-sm whitespace-normal break-words">
                         {template.template}
                       </p>
                     </div>
@@ -480,7 +490,7 @@ Do you have 3 minutes to discuss how this could benefit your portfolio?` : "";
                 ))}
               </div>
               <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-sm text-blue-700 leading-relaxed">
+                <p className="text-sm text-blue-700 leading-relaxed break-words">
                   💡 <strong>Tip:</strong> Copy the template, then paste it into Microsoft Phone Link to send as a text message to {currentContact.name} at {currentContact.phone}
                 </p>
               </div>
