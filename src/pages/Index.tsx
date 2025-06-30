@@ -26,7 +26,7 @@ const Index = () => {
         <header className="bg-white shadow-sm border-b">
           <div className="w-full px-8 lg:px-12">
             <div className="flex items-center justify-between h-16">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-6">
                 <div className="bg-blue-600 p-2 rounded-lg">
                   <Phone className="h-6 w-6 text-white" />
                 </div>
