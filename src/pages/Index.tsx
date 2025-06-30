@@ -16,12 +16,13 @@ const futureImages = [
 ];
 
 const futureLines = [
+  // 🔥 OG lines
   "Mask off, deals on.",
-  "I ghosted sleep to call up rent.",
-  "Pray for love. Call for money.",
   "Pipeline heavy, feelings light.",
   "She left me on read, my clients can’t.",
-  "Woke up toxic, phone never silent.",
+  "I ghosted sleep to call up rent.",
+  "Pray for love. Call for money.",
+  "Woke up toxic — phone never silent.",
   "Phone ringin’ like my ex at 2AM — can’t block money.",
   "I don’t miss calls or blessings.",
   "Mask off, deal on. Pipe up, phone on.",
@@ -32,17 +33,51 @@ const futureLines = [
   "Your girl wants brunch, I want her dad’s retail portfolio.",
   "My last heartbreak built this dialer.",
   "I’m poly — loyal to calls, married to grind.",
-  "She left me on read, my clients can’t.",
   "If you hear me breathing, I’m closing.",
-  
-  // 🔥 Bonus new savage lines:
   "Broke up with sleep. Back with deals.",
   "She wants a soft life. I want a signed LOI.",
   "Cold calls warmer than my last relationship.",
   "Feelings on DND. Pipeline on 100.",
   "No cuffing season, just closing season.",
   "If I’m up, my phone’s up.",
-  "Miss me? Call me — I’m busy calling your landlord."
+  "Miss me? Call me — I’m busy calling your landlord.",
+
+  // 🏢💔 New savage retail landlord bars
+  "She wants roses — I want rent bumps.",
+  "She texts paragraphs — I sign LOIs.",
+  "I’m triple net — no maintenance, no feelings, all cash flow.",
+  "She wants a key to my heart — I want keys to her dad’s strip center.",
+  "Lease renewals keep me warm at night.",
+  "If it ain’t add value, I ghost it.",
+  "She wants forever — I want 5-year options.",
+  "I don’t break up — I 1031 exchange.",
+  "My pipeline faithful — my feelings aren’t.",
+  "Cupid’s broke — my rent roll ain’t.",
+  "She wants brunch mimosas — I want drive-thru tenants.",
+  "Heart vacant — units leased.",
+  "She wants a soft landing — I want a hard asset.",
+  "I’m only loyal to cap rates.",
+  "She’s an expense — I prefer triple net.",
+  "Broke her lease, kept her deposit.",
+  "Feelings defaulted. NOI up.",
+  "My heart’s off-market.",
+  "Love depreciates — assets appreciate.",
+  "She wants forever. I underwrite 5 years.",
+
+  // 🧨 Extra fresh toxic landlord add-ons
+  "She wants my time — I want percentage rent escalations.",
+  "I do heartbreak clauses like I do CAM reconciliations.",
+  "She wants a ring — I want anchor tenants.",
+  "Tenant mix tight — my circle tighter.",
+  "If you can’t pay rent, you can’t text me back.",
+  "I’m fully leased — no subletting emotions.",
+  "Evicted my feelings — replaced ‘em with passive income.",
+  "She wants pillow talk — I want lease abstracts.",
+  "My closure rate higher than my closure skills.",
+  "I don’t date. I negotiate.",
+  "Breakups cost me less than vacancies.",
+  "Love’s a liability — rent roll’s an asset.",
+  "She wants forever? I want auto-renewal."
 ];
 
 const Index = () => {
