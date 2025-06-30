@@ -20,8 +20,29 @@ const futureLines = [
   "I ghosted sleep to call up rent.",
   "Pray for love. Call for money.",
   "Pipeline heavy, feelings light.",
-  "She left me on read, my clients can't.",
-  "Woke up toxic, phone never silent."
+  "She left me on read, my clients can’t.",
+  "Woke up toxic, phone never silent.",
+  "Phone ringin’ like my ex at 2AM — can’t block money.",
+  "I don’t miss calls or blessings.",
+  "Mask off, deal on. Pipe up, phone on.",
+  "Left my feelings on read, but my pipeline on delivered.",
+  "I don’t chase love. I chase owners who own more.",
+  "They sleep, I cold call.",
+  "I don’t text back, I call forward.",
+  "Your girl wants brunch, I want her dad’s retail portfolio.",
+  "My last heartbreak built this dialer.",
+  "I’m poly — loyal to calls, married to grind.",
+  "She left me on read, my clients can’t.",
+  "If you hear me breathing, I’m closing.",
+  
+  // 🔥 Bonus new savage lines:
+  "Broke up with sleep. Back with deals.",
+  "She wants a soft life. I want a signed LOI.",
+  "Cold calls warmer than my last relationship.",
+  "Feelings on DND. Pipeline on 100.",
+  "No cuffing season, just closing season.",
+  "If I’m up, my phone’s up.",
+  "Miss me? Call me — I’m busy calling your landlord."
 ];
 
 const Index = () => {
