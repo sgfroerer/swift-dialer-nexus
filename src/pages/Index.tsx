@@ -4,6 +4,7 @@ import { CallListManager } from "@/components/CallListManager";
 import { CampaignDashboard } from "@/components/CampaignDashboard";
 import { AgentInterface } from "@/components/AgentInterface";
 import { GlobalSidebar } from "@/components/GlobalSidebar";
+import { KeyboardShortcutsCallout } from "@/components/KeyboardShortcutsCallout";
 import { Phone, Users, BarChart3 } from "lucide-react";
 
 const Index = () => {
@@ -31,8 +32,11 @@ const Index = () => {
                 </div>
                 <h1 className="text-xl font-bold text-gray-900">OpenDialer Pro</h1>
               </div>
-              <div className="text-sm text-gray-500">
-                Open Source Auto-Dialer Platform
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-500">
+                  Open Source Auto-Dialer Platform
+                </div>
+                <KeyboardShortcutsCallout />
               </div>
             </div>
           </div>
