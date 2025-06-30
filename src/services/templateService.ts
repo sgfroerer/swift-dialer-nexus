@@ -210,10 +210,16 @@ export class TemplateService {
     return template ? template.content : '';
   }
 
-  // Template Processing
+  // Template Processing - Updated to extract first name only
   processTemplate(template: string, contact: any): string {
+    // Extract first name from full name
+    const getFirstName = (fullName: string): string => {
+      if (!fullName) return '[Name]';
+      return fullName.split(' ')[0];
+    };
+
     return template
-      .replace(/\{name\}/g, contact?.name || '[Name]')
+      .replace(/\{name\}/g, contact?.name ? getFirstName(contact.name) : '[Name]')
       .replace(/\{company\}/g, contact?.company || '[Company]')
       .replace(/\{propertyType\}/g, contact?.propertyType || '[Property Type]')
       .replace(/\{phone\}/g, contact?.phone || '[Phone]')
