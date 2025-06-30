@@ -72,6 +72,10 @@ const Index = () => {
     }, 200);
   };
 
+  const handleQuoteClick = () => {
+    setShowLine(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Global Sidebar */}
@@ -114,16 +118,20 @@ const Index = () => {
                   }`}
                 >
                   {showLine && (
-                    <span className="text-sm font-bold italic text-purple-600 text-center">
+                    <button
+                      onClick={handleQuoteClick}
+                      className="text-sm font-bold italic text-purple-600 text-center hover:text-purple-800 transition-colors cursor-pointer"
+                      title="Click to hide"
+                    >
                       "{futureLines[currentLineIndex]}"
-                    </span>
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Right Side - Future Image + Platform Text */}
               <div className="flex items-center space-x-4">
-                {/* Future Image */}
+                {/* Future Image - Bigger, No Border/Circle */}
                 <button
                   onClick={handleFutureClick}
                   className={`transition-all duration-200 hover:scale-110 ${
@@ -134,13 +142,15 @@ const Index = () => {
                   <img
                     src={futureImages[currentImageIndex]}
                     alt="Future"
-                    className="w-8 h-8 rounded-full object-cover border-2 border-purple-300 hover:border-purple-500 transition-colors"
+                    className="w-12 h-12 object-contain hover:opacity-80 transition-opacity"
+                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
                     onError={(e) => {
                       // Fallback to a simple colored circle if image fails to load
                       e.currentTarget.style.display = 'none';
                       const fallback = document.createElement('div');
-                      fallback.className = 'w-8 h-8 rounded-full bg-purple-500 border-2 border-purple-300 hover:border-purple-500 transition-colors';
-                      fallback.innerHTML = '<span class="text-white text-xs font-bold flex items-center justify-center h-full">F</span>';
+                      fallback.className = 'w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center hover:opacity-80 transition-opacity';
+                      fallback.innerHTML = '<span class="text-white text-lg font-bold">F</span>';
+                      fallback.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))';
                       e.currentTarget.parentNode?.insertBefore(fallback, e.currentTarget);
                     }}
                   />
