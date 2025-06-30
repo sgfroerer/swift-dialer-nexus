@@ -20,11 +20,11 @@ const Index = () => {
         sessionStats={sessionStats}
       />
 
-      {/* Main Content with Sidebar Offset */}
+      {/* Main Content with Sidebar Offset and Consistent Padding */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-80'}`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
-          <div className="w-full px-6 lg:px-8">
+          <div className="w-full px-8 lg:px-12">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center space-x-3">
                 <div className="bg-blue-600 p-2 rounded-lg">
@@ -42,8 +42,8 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Main Content */}
-        <main className="w-full px-6 lg:px-8 py-8">
+        {/* Main Content with Consistent Padding */}
+        <main className="w-full px-8 lg:px-12 py-8">
           <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 lg:w-96">
               <TabsTrigger value="dashboard" className="flex items-center space-x-2">
