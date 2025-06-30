@@ -26,6 +26,7 @@ export const AgentInterface = () => {
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [sessionStats, setSessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
   const [isLoadingContact, setIsLoadingContact] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
   
   // Collapsible states
   const [salesScriptOpen, setSalesScriptOpen] = useState(true);
@@ -43,11 +44,13 @@ export const AgentInterface = () => {
   }, []);
 
   const loadNextContact = async () => {
+    if (isLoadingContact || isSkipping) return; // Prevent multiple simultaneous loads
+    
     setIsLoadingContact(true);
     
     try {
       // Add a small delay to ensure any pending operations complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       const nextContact = contactService.getNextContact();
       
@@ -73,6 +76,7 @@ export const AgentInterface = () => {
       });
     } finally {
       setIsLoadingContact(false);
+      setIsSkipping(false);
     }
   };
 
@@ -238,29 +242,42 @@ export const AgentInterface = () => {
   };
 
   const skipContact = async () => {
-    if (!currentContact) {
-      toast({
-        title: "No contact to skip",
-        description: "No current contact available",
-        variant: "destructive"
-      });
+    if (!currentContact || isSkipping || isLoadingContact) {
       return;
     }
     
-    console.log('🔄 Skipping contact:', currentContact.name);
+    setIsSkipping(true);
     
-    toast({
-      title: "Contact skipped",
-      description: "Loading next contact...",
-    });
-    
-    // Clear current state
-    setCallNotes("");
-    setCallDisposition("");
-    setShowTextTemplates(false);
-    
-    // Load next contact
-    await loadNextContact();
+    try {
+      console.log('🔄 Skipping contact:', currentContact.name);
+      
+      // Clear current state immediately
+      setCallNotes("");
+      setCallDisposition("");
+      setShowTextTemplates(false);
+      setCallActive(false);
+      setIsDialing(false);
+      setCooldownTimer(0);
+      setCallStartTime(null);
+      
+      toast({
+        title: "Contact skipped",
+        description: "Loading next contact...",
+      });
+      
+      // Load next contact with a slight delay to ensure state is cleared
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await loadNextContact();
+      
+    } catch (error) {
+      console.error('❌ Error skipping contact:', error);
+      toast({
+        title: "Error skipping contact",
+        description: "Please try again",
+        variant: "destructive"
+      });
+      setIsSkipping(false);
+    }
   };
 
   const toggleSession = () => {
@@ -290,14 +307,14 @@ export const AgentInterface = () => {
   };
 
   // Show loading state when no contact and loading
-  if (!currentContact && isLoadingContact) {
+  if (!currentContact && (isLoadingContact || isSkipping)) {
     return (
       <div className="flex items-center justify-center h-96">
         <Card className="w-96">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span>Loading Contact...</span>
+              <span>{isSkipping ? "Skipping Contact..." : "Loading Contact..."}</span>
             </CardTitle>
             <CardDescription>Please wait while we load the next contact</CardDescription>
           </CardHeader>
@@ -307,7 +324,7 @@ export const AgentInterface = () => {
   }
 
   // Show no contacts available state
-  if (!currentContact && !isLoadingContact) {
+  if (!currentContact && !isLoadingContact && !isSkipping) {
     return (
       <div className="flex items-center justify-center h-96">
         <Card className="w-96">
@@ -347,10 +364,10 @@ export const AgentInterface = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={skipContact} 
-                  disabled={isLoadingContact}
+                  disabled={isLoadingContact || isSkipping}
                   className="hover:scale-105 transition-transform"
                 >
-                  {isLoadingContact ? (
+                  {(isLoadingContact || isSkipping) ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <SkipForward className="h-4 w-4" />
@@ -544,9 +561,9 @@ export const AgentInterface = () => {
                 <Button 
                   onClick={submitDisposition} 
                   className="w-full hover:scale-105 transition-transform" 
-                  disabled={!callDisposition || isLoadingContact}
+                  disabled={!callDisposition || isLoadingContact || isSkipping}
                 >
-                  {isLoadingContact ? (
+                  {(isLoadingContact || isSkipping) ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   ) : null}
                   Submit & Next Contact
