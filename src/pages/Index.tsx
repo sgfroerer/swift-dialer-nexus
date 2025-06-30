@@ -21,7 +21,7 @@ const Index = () => {
       />
 
       {/* Main Content with Sidebar Offset and Consistent Padding */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-80'}`}>
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-40' : 'ml-80'}`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="w-full px-8 lg:px-12">
