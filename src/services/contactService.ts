@@ -371,7 +371,8 @@ const STORAGE_KEYS = {
   CONTACTS: 'opendialer_contacts',
   CALL_HISTORY: 'opendialer_call_history',
   LAST_BACKUP: 'opendialer_last_backup',
-  VERSION: 'opendialer_version'
+  VERSION: 'opendialer_version',
+  CURRENT_CONTACT_INDEX: 'opendialer_current_contact_index'
 } as const;
 
 const CURRENT_VERSION = '1.0.0';
@@ -426,6 +427,7 @@ const clearStorage = (): void => {
 export class ContactService {
   private contacts: Contact[] = [];
   private callHistory: CallHistory[] = [];
+  private currentContactIndex: number = 0;
   private isInitialized = false;
 
   constructor() {
@@ -445,12 +447,14 @@ export class ContactService {
       console.log('🆕 First run detected - loading sample data');
       this.contacts = [...sampleContacts];
       this.callHistory = [];
+      this.currentContactIndex = 0;
       this.saveAllData();
       saveToStorage(STORAGE_KEYS.VERSION, CURRENT_VERSION);
     } else {
       console.log('📂 Loading existing data from localStorage');
       this.contacts = loadFromStorage(STORAGE_KEYS.CONTACTS, [...sampleContacts]);
       this.callHistory = loadFromStorage(STORAGE_KEYS.CALL_HISTORY, []);
+      this.currentContactIndex = loadFromStorage(STORAGE_KEYS.CURRENT_CONTACT_INDEX, 0);
       
       // Validate data integrity
       this.validateAndRepairData();
@@ -553,6 +557,12 @@ export class ContactService {
       return true;
     });
 
+    // Validate current contact index
+    if (this.currentContactIndex >= this.contacts.length || this.currentContactIndex < 0) {
+      this.currentContactIndex = 0;
+      repaired = true;
+    }
+
     if (repaired) {
       console.log('🔧 Data repaired and saved');
       this.saveAllData();
@@ -562,6 +572,7 @@ export class ContactService {
   private saveAllData(): void {
     saveToStorage(STORAGE_KEYS.CONTACTS, this.contacts);
     saveToStorage(STORAGE_KEYS.CALL_HISTORY, this.callHistory);
+    saveToStorage(STORAGE_KEYS.CURRENT_CONTACT_INDEX, this.currentContactIndex);
     saveToStorage(STORAGE_KEYS.LAST_BACKUP, new Date().toISOString());
   }
 
@@ -573,6 +584,10 @@ export class ContactService {
     saveToStorage(STORAGE_KEYS.CALL_HISTORY, this.callHistory);
   }
 
+  private saveCurrentIndex(): void {
+    saveToStorage(STORAGE_KEYS.CURRENT_CONTACT_INDEX, this.currentContactIndex);
+  }
+
   getContacts(status?: Contact['status']): Contact[] {
     if (status) {
       return this.contacts.filter(c => c.status === status);
@@ -582,18 +597,84 @@ export class ContactService {
 
   getNextContact(): Contact | null {
     const pendingContacts = this.contacts.filter(c => c.status === 'pending');
-    if (pendingContacts.length === 0) return null;
     
-    // Sort by call count (ascending) and last called (oldest first)
-    return pendingContacts.sort((a, b) => {
-      if (a.callCount !== b.callCount) {
-        return a.callCount - b.callCount;
+    if (pendingContacts.length === 0) {
+      console.log('❌ No pending contacts available');
+      return null;
+    }
+    
+    // Find the next contact starting from current index
+    let nextContact: Contact | null = null;
+    let searchIndex = this.currentContactIndex;
+    
+    // First, try to find a contact starting from current index
+    for (let i = 0; i < pendingContacts.length; i++) {
+      const contactIndex = (searchIndex + i) % pendingContacts.length;
+      const contact = pendingContacts[contactIndex];
+      
+      if (contact && contact.status === 'pending') {
+        nextContact = contact;
+        this.currentContactIndex = contactIndex;
+        break;
       }
-      if (a.lastCalled && b.lastCalled) {
-        return a.lastCalled.getTime() - b.lastCalled.getTime();
+    }
+    
+    // If no contact found, get the first pending contact
+    if (!nextContact) {
+      // Sort by call count (ascending) and last called (oldest first)
+      const sortedContacts = pendingContacts.sort((a, b) => {
+        if (a.callCount !== b.callCount) {
+          return a.callCount - b.callCount;
+        }
+        if (a.lastCalled && b.lastCalled) {
+          return a.lastCalled.getTime() - b.lastCalled.getTime();
+        }
+        return a.lastCalled ? 1 : -1;
+      });
+      
+      nextContact = sortedContacts[0];
+      this.currentContactIndex = 0;
+    }
+    
+    if (nextContact) {
+      this.saveCurrentIndex();
+      console.log(`📞 Next contact: ${nextContact.name} (Index: ${this.currentContactIndex})`);
+    }
+    
+    return nextContact;
+  }
+
+  skipToNextContact(): Contact | null {
+    const pendingContacts = this.contacts.filter(c => c.status === 'pending');
+    
+    if (pendingContacts.length === 0) {
+      console.log('❌ No pending contacts available to skip to');
+      return null;
+    }
+    
+    // Move to next contact
+    this.currentContactIndex = (this.currentContactIndex + 1) % pendingContacts.length;
+    
+    // Find the next pending contact from the new index
+    let nextContact: Contact | null = null;
+    
+    for (let i = 0; i < pendingContacts.length; i++) {
+      const contactIndex = (this.currentContactIndex + i) % pendingContacts.length;
+      const contact = pendingContacts[contactIndex];
+      
+      if (contact && contact.status === 'pending') {
+        nextContact = contact;
+        this.currentContactIndex = contactIndex;
+        break;
       }
-      return a.lastCalled ? 1 : -1;
-    })[0];
+    }
+    
+    if (nextContact) {
+      this.saveCurrentIndex();
+      console.log(`⏭️ Skipped to contact: ${nextContact.name} (Index: ${this.currentContactIndex})`);
+    }
+    
+    return nextContact;
   }
 
   updateContact(contactId: string, updates: Partial<Contact>): void {
@@ -641,6 +722,11 @@ export class ContactService {
       
       // Also remove related call history
       this.callHistory = this.callHistory.filter(call => call.contactId !== contactId);
+      
+      // Adjust current index if necessary
+      if (this.currentContactIndex >= this.contacts.length) {
+        this.currentContactIndex = Math.max(0, this.contacts.length - 1);
+      }
       
       this.saveAllData();
       console.log(`🗑️ Contact deleted: ${deletedContact.name}`);
@@ -712,7 +798,8 @@ export class ContactService {
       version: CURRENT_VERSION,
       timestamp: new Date().toISOString(),
       contacts: this.contacts,
-      callHistory: this.callHistory
+      callHistory: this.callHistory,
+      currentContactIndex: this.currentContactIndex
     };
     
     return JSON.stringify(exportData, null, 2);
@@ -729,7 +816,8 @@ export class ContactService {
       // Backup current data
       const backup = {
         contacts: [...this.contacts],
-        callHistory: [...this.callHistory]
+        callHistory: [...this.callHistory],
+        currentContactIndex: this.currentContactIndex
       };
 
       // Import contacts
@@ -749,6 +837,7 @@ export class ContactService {
       // Replace data
       this.contacts = importedContacts;
       this.callHistory = importedCalls;
+      this.currentContactIndex = data.currentContactIndex || 0;
       
       // Validate and save
       this.validateAndRepairData();
@@ -773,6 +862,7 @@ export class ContactService {
   resetToSampleData(): void {
     this.contacts = [...sampleContacts];
     this.callHistory = [];
+    this.currentContactIndex = 0;
     this.saveAllData();
     console.log('🔄 Data reset to sample data');
   }
@@ -780,6 +870,7 @@ export class ContactService {
   clearAllData(): void {
     this.contacts = [];
     this.callHistory = [];
+    this.currentContactIndex = 0;
     clearStorage();
     console.log('🗑️ All data cleared');
   }

@@ -265,9 +265,20 @@ export const AgentInterface = () => {
         description: "Loading next contact...",
       });
       
-      // Load next contact with a slight delay to ensure state is cleared
+      // Use the new skip method that advances to next contact
       await new Promise(resolve => setTimeout(resolve, 100));
-      await loadNextContact();
+      const nextContact = contactService.skipToNextContact();
+      
+      if (nextContact) {
+        setCurrentContact(nextContact);
+        console.log('✅ Skipped to next contact:', nextContact.name);
+      } else {
+        setCurrentContact(null);
+        toast({
+          title: "No more contacts",
+          description: "All contacts have been processed",
+        });
+      }
       
     } catch (error) {
       console.error('❌ Error skipping contact:', error);
@@ -276,6 +287,7 @@ export const AgentInterface = () => {
         description: "Please try again",
         variant: "destructive"
       });
+    } finally {
       setIsSkipping(false);
     }
   };
