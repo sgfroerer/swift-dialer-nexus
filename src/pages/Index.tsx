@@ -11,6 +11,10 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Global Sidebar */}
@@ -20,18 +24,27 @@ const Index = () => {
         sessionStats={sessionStats}
       />
 
-      {/* Main Content with Sidebar Offset and Consistent Padding */}
+      {/* Main Content with Sidebar Offset and Symmetrical Padding */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-80'}`}>
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="w-full px-8 lg:px-12">
+        {/* Sticky Header */}
+        <header className="sticky top-0 z-40 bg-white shadow-sm border-b">
+          <div className={`w-full transition-all duration-300 ${
+            sidebarCollapsed 
+              ? 'px-12 lg:px-16' // More padding when collapsed to match right side
+              : 'px-8 lg:px-12'   // Standard padding when expanded
+          }`}>
             <div className="flex items-center justify-between h-16">
-              <div className="flex items-center space-x-6">
-                <div className="bg-blue-600 p-2 rounded-lg">
+              <button 
+                onClick={scrollToTop}
+                className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer group"
+              >
+                <div className="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-700 transition-colors">
                   <Phone className="h-6 w-6 text-white" />
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">OpenDialer Pro</h1>
-              </div>
+                <h1 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  OpenDialer Pro
+                </h1>
+              </button>
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-gray-500">
                   Open Source Auto-Dialer Platform
@@ -42,8 +55,12 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Main Content with Consistent Padding */}
-        <main className="w-full px-8 lg:px-12 py-8">
+        {/* Main Content with Symmetrical Padding */}
+        <main className={`w-full py-8 transition-all duration-300 ${
+          sidebarCollapsed 
+            ? 'px-12 lg:px-16' // Matches header padding when collapsed
+            : 'px-8 lg:px-12'   // Matches header padding when expanded
+        }`}>
           <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 lg:w-96">
               <TabsTrigger value="dashboard" className="flex items-center space-x-2">
