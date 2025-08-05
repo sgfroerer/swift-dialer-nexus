@@ -11,39 +11,46 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Upload, Download, Search, Filter, Plus, FileText, Users, Trash2, Edit, Phone, Mail, Loader2, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { contactService, Contact } from "@/services/contactService";
+import { contactService, Contact, CallList } from "@/services/contactService";
 
 export const CallListManager = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([]);
+  const [callLists, setCallLists] = useState<CallList[]>([]);
+  const [selectedCallList, setSelectedCallList] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [csvInput, setCsvInput] = useState("");
-  const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreateListDialogOpen, setIsCreateListDialogOpen] = useState(false);
+  const [newCallListName, setNewCallListName] = useState("");
+
   const { toast } = useToast();
 
-  // Load contacts on mount and set up refresh interval
   useEffect(() => {
-    refreshContacts();
-    const interval = setInterval(refreshContacts, 10000); // Refresh every 10 seconds
-    return () => clearInterval(interval);
+    fetchCallLists();
   }, []);
 
-  // Filter contacts when search term or status filter changes
+  useEffect(() => {
+    if (selectedCallList) {
+      fetchContacts(selectedCallList);
+    } else {
+      setContacts([]);
+    }
+  }, [selectedCallList]);
+
   useEffect(() => {
     let filtered = contacts;
 
     if (searchTerm) {
       filtered = filtered.filter(contact =>
         contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        contact.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contact.company && contact.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
         contact.phone.includes(searchTerm) ||
-        contact.email.toLowerCase().includes(searchTerm.toLowerCase())
+        (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -54,131 +61,56 @@ export const CallListManager = () => {
     setFilteredContacts(filtered);
   }, [contacts, searchTerm, statusFilter]);
 
-  const refreshContacts = () => {
-    const allContacts = contactService.getContacts();
-    setContacts(allContacts);
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === "text/csv") {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const csv = e.target?.result as string;
-        setCsvInput(csv);
-        setShowImportDialog(true);
-      };
-      reader.readAsText(file);
-    } else {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a CSV file",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const parseCsvData = (csvData: string): Partial<Contact>[] => {
-    const lines = csvData.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    return lines.slice(1).map((line, index) => {
-      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-      const contact: Partial<Contact> = {
-        id: `imported_${Date.now()}_${index}`,
-        callCount: 0,
-        status: 'pending' as Contact['status']
-      };
-
-      headers.forEach((header, i) => {
-        const value = values[i] || '';
-        switch (header) {
-          case 'name':
-          case 'full name':
-          case 'contact name':
-            contact.name = value;
-            break;
-          case 'phone':
-          case 'phone number':
-          case 'telephone':
-            contact.phone = value;
-            break;
-          case 'email':
-          case 'email address':
-            contact.email = value;
-            break;
-          case 'company':
-          case 'business':
-          case 'organization':
-            contact.company = value;
-            break;
-          case 'property type':
-          case 'property':
-          case 'type':
-            contact.propertyType = value;
-            break;
-          case 'notes':
-          case 'comments':
-            contact.notes = value;
-            break;
-        }
-      });
-
-      return contact;
-    }).filter(contact => contact.name && contact.phone); // Only keep contacts with required fields
-  };
-
-  const importContacts = () => {
+  const fetchCallLists = async () => {
     try {
-      const parsedContacts = parseCsvData(csvInput);
-      
-      if (parsedContacts.length === 0) {
-        toast({
-          title: "No valid contacts found",
-          description: "Make sure your CSV has Name and Phone columns",
-          variant: "destructive"
-        });
-        return;
+      const lists = await contactService.getCallLists();
+      setCallLists(lists);
+      if (lists.length > 0 && !selectedCallList) {
+        setSelectedCallList(lists[0].id);
       }
-
-      // Here you would typically save to the contact service
-      // For now, we'll just show a success message
-      toast({
-        title: "Contacts imported successfully",
-        description: `${parsedContacts.length} contacts have been imported`,
-      });
-
-      setCsvInput("");
-      setShowImportDialog(false);
-      refreshContacts();
     } catch (error) {
       toast({
-        title: "Import failed",
-        description: "Please check your CSV format and try again",
-        variant: "destructive"
+        title: "Error",
+        description: "Could not fetch call lists",
+        variant: "destructive",
       });
     }
   };
 
-  const exportContacts = () => {
-    const csvHeaders = "Name,Phone,Email,Company,Property Type,Status,Call Count,Last Called,Notes";
-    const csvRows = contacts.map(contact => 
-      `"${contact.name}","${contact.phone}","${contact.email}","${contact.company}","${contact.propertyType || ''}","${contact.status}","${contact.callCount}","${contact.lastCalled?.toLocaleDateString() || ''}","${contact.notes || ''}"`
-    );
-    
-    const csvContent = [csvHeaders, ...csvRows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `contacts_export_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(url);
+  const fetchContacts = async (callListId: number) => {
+    setIsLoading(true);
+    try {
+      const contacts = await contactService.getContacts(callListId);
+      setContacts(contacts);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not fetch contacts",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    toast({
-      title: "Export completed",
-      description: "Contacts have been exported to CSV file",
-    });
+  const handleCreateCallList = async () => {
+    if (!newCallListName) return;
+    try {
+      await contactService.createCallList(newCallListName);
+      setNewCallListName("");
+      setIsCreateListDialogOpen(false);
+      fetchCallLists();
+      toast({
+        title: "Success",
+        description: "Call list created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Could not create call list",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditContact = (contact: Contact) => {
@@ -191,12 +123,11 @@ export const CallListManager = () => {
     
     setIsLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
     try {
-      contactService.updateContact(editingContact.id, editingContact);
-      refreshContacts();
+      await contactService.updateContact(editingContact.id, editingContact);
+      if (selectedCallList) {
+        fetchContacts(selectedCallList);
+      }
       setIsEditDialogOpen(false);
       setEditingContact(null);
       
@@ -225,13 +156,11 @@ export const CallListManager = () => {
     
     setIsLoading(true);
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
     try {
-      // In a real app, you'd call contactService.deleteContact(contactToDelete.id)
-      // For now, we'll simulate the deletion
-      setContacts(prev => prev.filter(c => c.id !== contactToDelete.id));
+      await contactService.deleteContact(contactToDelete.id);
+      if (selectedCallList) {
+        fetchContacts(selectedCallList);
+      }
       
       toast({
         title: "Contact deleted",
@@ -261,123 +190,37 @@ export const CallListManager = () => {
     }
   };
 
-  const stats = contactService.getStats();
-
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Contacts</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.contacts.total}</div>
-            <p className="text-xs text-muted-foreground">In all lists</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Calls</CardTitle>
-            <Phone className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.contacts.pending}</div>
-            <p className="text-xs text-muted-foreground">Ready to dial</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Contacted</CardTitle>
-            <Mail className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.contacts.contacted}</div>
-            <p className="text-xs text-muted-foreground">Successfully reached</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.contacts.total > 0 ? Math.round(((stats.contacts.contacted + stats.contacts.completed) / stats.contacts.total) * 100) : 0}%
-            </div>
-            <p className="text-xs text-muted-foreground">Processed contacts</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Import/Export Section */}
-      <Card className="hover:shadow-lg transition-shadow duration-200">
+      <Card>
         <CardHeader>
           <CardTitle>Contact List Management</CardTitle>
-          <CardDescription>Import new contacts or export existing ones</CardDescription>
+          <CardDescription>Select a call list to manage or create a new one.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <Button asChild className="hover:scale-105 transition-transform">
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import CSV
-                </label>
-              </Button>
-            </div>
-            
-            <Button variant="outline" onClick={exportContacts} className="hover:scale-105 transition-transform">
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-
-            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="hover:scale-105 transition-transform">
-              <Plus className="h-4 w-4 mr-2" />
-              Paste Data
-            </Button>
-          </div>
-
-          {showImportDialog && (
-            <div className="mt-6 p-4 border rounded-lg bg-gray-50 animate-in slide-in-from-top-2">
-              <h3 className="font-medium mb-3">Import Contact Data</h3>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="csv-input">CSV Data (Name, Phone, Email, Company, Property Type)</Label>
-                  <Textarea
-                    id="csv-input"
-                    value={csvInput}
-                    onChange={(e) => setCsvInput(e.target.value)}
-                    placeholder="Name,Phone,Email,Company,Property Type&#10;John Smith,555-123-4567,john@example.com,Tech Corp,Office Building&#10;Jane Doe,555-987-6543,jane@example.com,Retail Inc,Shopping Center"
-                    rows={6}
-                    className="font-mono text-sm"
-                  />
-                </div>
-                <div className="flex space-x-2">
-                  <Button onClick={importContacts}>Import Contacts</Button>
-                  <Button variant="outline" onClick={() => setShowImportDialog(false)}>Cancel</Button>
-                </div>
-              </div>
-            </div>
-          )}
+        <CardContent className="flex gap-4">
+          <Select onValueChange={(value) => setSelectedCallList(Number(value))} value={selectedCallList?.toString()}>
+            <SelectTrigger className="w-72">
+              <SelectValue placeholder="Select a call list" />
+            </SelectTrigger>
+            <SelectContent>
+              {callLists.map((list) => (
+                <SelectItem key={list.id} value={list.id.toString()}>
+                  {list.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => setIsCreateListDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create New List
+          </Button>
         </CardContent>
       </Card>
 
       {/* Contact List */}
-      <Card className="hover:shadow-lg transition-shadow duration-200">
+      <Card>
         <CardHeader>
-          <CardTitle>Contact Lists</CardTitle>
+          <CardTitle>Contacts</CardTitle>
           <CardDescription>Manage and filter your contact database</CardDescription>
         </CardHeader>
         <CardContent>
@@ -426,10 +269,16 @@ export const CallListManager = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredContacts.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      {contacts.length === 0 ? "No contacts found. Import a CSV file to get started." : "No contacts match your current filters."}
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : filteredContacts.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                      {contacts.length === 0 ? "No contacts found in this list." : "No contacts match your current filters."}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -446,7 +295,7 @@ export const CallListManager = () => {
                       </TableCell>
                       <TableCell>{contact.callCount}</TableCell>
                       <TableCell>
-                        {contact.lastCalled ? contact.lastCalled.toLocaleDateString() : 'Never'}
+                        {contact.lastCalled ? new Date(contact.lastCalled).toLocaleDateString() : 'Never'}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -576,7 +425,7 @@ export const CallListManager = () => {
             <AlertDialogTitle>Delete Contact</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete <strong>{contactToDelete?.name}</strong>? 
-              This action cannot be undone and will remove all call history for this contact.
+              This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -596,6 +445,34 @@ export const CallListManager = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Call List Dialog */}
+      <Dialog open={isCreateListDialogOpen} onOpenChange={setIsCreateListDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Call List</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-call-list-name">List Name</Label>
+              <Input
+                id="new-call-list-name"
+                value={newCallListName}
+                onChange={(e) => setNewCallListName(e.target.value)}
+                placeholder="e.g. High Priority Leads"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateListDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateCallList}>
+              Create List
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
