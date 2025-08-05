@@ -1,71 +1,262 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CallListManager } from "@/components/CallListManager";
 import { CampaignDashboard } from "@/components/CampaignDashboard";
 import { AgentInterface } from "@/components/AgentInterface";
-import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
-import { Phone, Users, BarChart3, Settings } from "lucide-react";
+import { GlobalSidebar } from "@/components/GlobalSidebar";
+import { KeyboardShortcutsCallout } from "@/components/KeyboardShortcutsCallout";
+import { Phone, Users, BarChart3 } from "lucide-react";
+
+const futureImages = [
+  "https://officialpsds.com/imageview/rn/2v/rn2v52_large.png?1521316541",
+  "https://officialpsds.com/imageview/7j/nj/7jnjq5_large.png?1521316540",
+  "https://officialpsds.com/imageview/79/nm/79nmpz_large.png?1521316511",
+  "https://www.pngkit.com/png/full/171-1712685_future-png-rapper-future-the-rapper-outfits-2015.png",
+  "https://us-tuna-sounds-images.voicemod.net/9e6290d9-a7ca-4b29-b706-21ae49a0e7fc-1730828762819.png"
+];
+
+const futureLines = [
+  // 🔥 OG lines
+  "Mask off, deals on.",
+  "Pipeline heavy, feelings light.",
+  "She left me on read, my clients can’t.",
+  "I ghosted sleep to call up rent.",
+  "Pray for love. Call for money.",
+  "Woke up toxic — phone never silent.",
+  "Phone ringin’ like my ex at 2AM — can’t block money.",
+  "I don’t miss calls or blessings.",
+  "Mask off, deal on. Pipe up, phone on.",
+  "Left my feelings on read, but my pipeline on delivered.",
+  "I don’t chase love. I chase owners who own more.",
+  "They sleep, I cold call.",
+  "I don’t text back, I call forward.",
+  "Your girl wants brunch, I want her dad’s retail portfolio.",
+  "My last heartbreak built this dialer.",
+  "I’m poly — loyal to calls, married to grind.",
+  "If you hear me breathing, I’m closing.",
+  "Broke up with sleep. Back with deals.",
+  "She wants a soft life. I want a signed LOI.",
+  "Cold calls warmer than my last relationship.",
+  "Feelings on DND. Pipeline on 100.",
+  "No cuffing season, just closing season.",
+  "If I’m up, my phone’s up.",
+  "Miss me? Call me — I’m busy calling your landlord.",
+
+  // 🏢💔 New savage retail landlord bars
+  "She wants roses — I want rent bumps.",
+  "She texts paragraphs — I sign LOIs.",
+  "I’m triple net — no maintenance, no feelings, all cash flow.",
+  "She wants a key to my heart — I want keys to her dad’s strip center.",
+  "Lease renewals keep me warm at night.",
+  "If it ain’t add value, I ghost it.",
+  "She wants forever — I want 5-year options.",
+  "I don’t break up — I 1031 exchange.",
+  "My pipeline faithful — my feelings aren’t.",
+  "Cupid’s broke — my rent roll ain’t.",
+  "She wants brunch mimosas — I want drive-thru tenants.",
+  "Heart vacant — units leased.",
+  "She wants a soft landing — I want a hard asset.",
+  "I’m only loyal to cap rates.",
+  "She’s an expense — I prefer triple net.",
+  "Broke her lease, kept her deposit.",
+  "Feelings defaulted. NOI up.",
+  "My heart’s off-market.",
+  "Love depreciates — assets appreciate.",
+  "She wants forever. I underwrite 5 years.",
+
+  // 🧨 Extra fresh toxic landlord add-ons
+  "She wants my time — I want percentage rent escalations.",
+  "I do heartbreak clauses like I do CAM reconciliations.",
+  "She wants a ring — I want anchor tenants.",
+  "Tenant mix tight — my circle tighter.",
+  "If you can’t pay rent, you can’t text me back.",
+  "I’m fully leased — no subletting emotions.",
+  "Evicted my feelings — replaced ‘em with passive income.",
+  "She wants pillow talk — I want lease abstracts.",
+  "My closure rate higher than my closure skills.",
+  "I don’t date. I negotiate.",
+  "Breakups cost me less than vacancies.",
+  "Love’s a liability — rent roll’s an asset.",
+  "She wants forever? I want auto-renewal."
+];
 
 const Index = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
+  
+  // Future image and line state
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentLineIndex, setCurrentLineIndex] = useState(0);
+  const [showLine, setShowLine] = useState(false);
+  const [isImageTransitioning, setIsImageTransitioning] = useState(false);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getRandomIndex = (currentIndex: number, arrayLength: number) => {
+    let newIndex;
+    do {
+      newIndex = Math.floor(Math.random() * arrayLength);
+    } while (newIndex === currentIndex && arrayLength > 1);
+    return newIndex;
+  };
+
+  const handleFutureClick = () => {
+    // Start image transition
+    setIsImageTransitioning(true);
+    
+    // Hide current line with fade out
+    setShowLine(false);
+    
+    setTimeout(() => {
+      // Get new random indices
+      const newImageIndex = getRandomIndex(currentImageIndex, futureImages.length);
+      const newLineIndex = getRandomIndex(currentLineIndex, futureLines.length);
+      
+      // Update indices
+      setCurrentImageIndex(newImageIndex);
+      setCurrentLineIndex(newLineIndex);
+      
+      // End image transition
+      setIsImageTransitioning(false);
+      
+      // Show new line with fade in
+      setTimeout(() => {
+        setShowLine(true);
+      }, 100);
+    }, 200);
+  };
+
+  const handleQuoteClick = () => {
+    setShowLine(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Phone className="h-6 w-6 text-white" />
+      {/* Global Sidebar */}
+      <GlobalSidebar 
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        sessionStats={sessionStats}
+      />
+
+      {/* Main Content with Sidebar Offset and Symmetrical Padding */}
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-80'}`}>
+        {/* Sticky Header */}
+        <header className="sticky top-0 z-40 bg-white shadow-sm border-b">
+          <div className={`w-full transition-all duration-300 ${
+            sidebarCollapsed 
+              ? 'px-12 lg:px-16' // More padding when collapsed to match right side
+              : 'px-8 lg:px-12'   // Standard padding when expanded
+          }`}>
+            <div className="flex items-center justify-between h-16">
+              {/* Left Side - OpenDialer Pro */}
+              <button 
+                onClick={scrollToTop}
+                className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer group"
+              >
+                <div className="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-700 transition-colors">
+                  <Phone className="h-6 w-6 text-white" />
+                </div>
+                <h1 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  OpenDialer Pro
+                </h1>
+              </button>
+
+              {/* Center - Future Line (when shown) */}
+              <div className="flex-1 flex justify-center mx-8">
+                <div 
+                  className={`transition-all duration-300 ease-in-out ${
+                    showLine 
+                      ? 'opacity-100 transform translate-y-0' 
+                      : 'opacity-0 transform translate-y-2'
+                  }`}
+                >
+                  {showLine && (
+                    <button
+                      onClick={handleQuoteClick}
+                      className="text-sm font-bold italic text-purple-600 text-center hover:text-purple-800 transition-colors cursor-pointer"
+                      title="Click to hide"
+                    >
+                      "{futureLines[currentLineIndex]}"
+                    </button>
+                  )}
+                </div>
               </div>
-              <h1 className="text-xl font-bold text-gray-900">OpenDialer Pro</h1>
-            </div>
-            <div className="text-sm text-gray-500">
-              Open Source Auto-Dialer Platform
+
+              {/* Right Side - Future Image + Platform Text */}
+              <div className="flex items-center space-x-4">
+                {/* Future Image - Bigger, No Border/Circle */}
+                <button
+                  onClick={handleFutureClick}
+                  className={`transition-all duration-200 hover:scale-110 ${
+                    isImageTransitioning ? 'opacity-0' : 'opacity-100'
+                  }`}
+                  title="Click for Future wisdom"
+                >
+                  <img
+                    src={futureImages[currentImageIndex]}
+                    alt="Future"
+                    className="w-12 h-12 object-contain hover:opacity-80 transition-opacity"
+                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+                    onError={(e) => {
+                      // Fallback to a simple colored circle if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      const fallback = document.createElement('div');
+                      fallback.className = 'w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center hover:opacity-80 transition-opacity';
+                      fallback.innerHTML = '<span class="text-white text-lg font-bold">F</span>';
+                      fallback.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))';
+                      e.currentTarget.parentNode?.insertBefore(fallback, e.currentTarget);
+                    }}
+                  />
+                </button>
+
+                <div className="text-sm text-gray-500">
+                  Open Source Auto-Dialer Platform
+                </div>
+                <KeyboardShortcutsCallout />
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-96">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="lists" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Call Lists</span>
-            </TabsTrigger>
-            <TabsTrigger value="agent" className="flex items-center space-x-2">
-              <Phone className="h-4 w-4" />
-              <span>Agent</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center space-x-2">
-              <Settings className="h-4 w-4" />
-              <span>Analytics</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Content with Symmetrical Padding */}
+        <main className={`w-full py-8 transition-all duration-300 ${
+          sidebarCollapsed 
+            ? 'px-12 lg:px-16' // Matches header padding when collapsed
+            : 'px-8 lg:px-12'   // Matches header padding when expanded
+        }`}>
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 lg:w-96">
+              <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="lists" className="flex items-center space-x-2">
+                <Users className="h-4 w-4" />
+                <span>Call Lists</span>
+              </TabsTrigger>
+              <TabsTrigger value="agent" className="flex items-center space-x-2">
+                <Phone className="h-4 w-4" />
+                <span>Agent</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="dashboard">
-            <CampaignDashboard />
-          </TabsContent>
+            <TabsContent value="dashboard" className="space-y-8">
+              <CampaignDashboard />
+            </TabsContent>
 
-          <TabsContent value="lists">
-            <CallListManager />
-          </TabsContent>
+            <TabsContent value="lists" className="space-y-8">
+              <CallListManager />
+            </TabsContent>
 
-          <TabsContent value="agent">
-            <AgentInterface />
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <AnalyticsDashboard />
-          </TabsContent>
-        </Tabs>
-      </main>
+            <TabsContent value="agent" className="space-y-8">
+              <AgentInterface />
+            </TabsContent>
+          </Tabs>
+        </main>
+      </div>
     </div>
   );
 };

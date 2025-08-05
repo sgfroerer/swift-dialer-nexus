@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,15 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, Copy, MessageSquare, SkipForward, RefreshCw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Phone, PhoneCall, PhoneOff, User, Clock, Play, Pause, SkipForward, RefreshCw, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { contactService, Contact } from "@/services/contactService";
-
-interface TextTemplate {
-  id: string;
-  name: string;
-  template: string;
-}
+import { templateService } from "@/services/templateService";
+import { CallingWidget } from "@/components/CallingWidget";
+import { EditableTemplate } from "@/components/EditableTemplate";
+import { TextTemplateSelector } from "@/components/TextTemplateSelector";
 
 export const AgentInterface = () => {
   const [isDialing, setIsDialing] = useState(false);
@@ -27,6 +25,17 @@ export const AgentInterface = () => {
   const [currentContact, setCurrentContact] = useState<Contact | null>(null);
   const [callStartTime, setCallStartTime] = useState<Date | null>(null);
   const [sessionStats, setSessionStats] = useState({ callsMade: 0, connected: 0, startTime: new Date() });
+  const [isLoadingContact, setIsLoadingContact] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
+  
+  // Collapsible states
+  const [salesScriptOpen, setSalesScriptOpen] = useState(true);
+  
+  // Template states
+  const [salesScripts, setSalesScripts] = useState(templateService.getSalesScripts());
+  const [activeSalesScriptId, setActiveSalesScriptId] = useState(templateService.getActiveSalesScript()?.id || 'default-retail');
+  const [customSalesScript, setCustomSalesScript] = useState(templateService.getCustomSalesScript());
+  
   const { toast } = useToast();
 
   // Load initial contact on mount
@@ -34,48 +43,42 @@ export const AgentInterface = () => {
     loadNextContact();
   }, []);
 
-  const loadNextContact = () => {
-    const nextContact = contactService.getNextContact();
-    if (nextContact) {
-      setCurrentContact(nextContact);
-      setCallNotes("");
-      setCallDisposition("");
-      setShowTextTemplates(false);
-    } else {
+  const loadNextContact = async () => {
+    if (isLoadingContact || isSkipping) return; // Prevent multiple simultaneous loads
+    
+    setIsLoadingContact(true);
+    
+    try {
+      // Add a small delay to ensure any pending operations complete
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      const nextContact = contactService.getNextContact();
+      
+      if (nextContact) {
+        setCurrentContact(nextContact);
+        setCallNotes("");
+        setCallDisposition("");
+        setShowTextTemplates(false);
+        console.log('✅ Loaded next contact:', nextContact.name);
+      } else {
+        setCurrentContact(null);
+        toast({
+          title: "No more contacts",
+          description: "All contacts have been processed",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error loading next contact:', error);
       toast({
-        title: "No more contacts",
-        description: "All contacts have been processed",
+        title: "Error loading contact",
+        description: "Please try refreshing the contact list",
+        variant: "destructive"
       });
+    } finally {
+      setIsLoadingContact(false);
+      setIsSkipping(false);
     }
   };
-
-  const textTemplates: TextTemplate[] = currentContact ? [
-    {
-      id: "1",
-      name: "Standard Introduction",
-      template: `Hi ${currentContact.name}, this is Sam Gfroerer with M&M. I just tried giving you a quick call — I specialize in retail investment properties and wanted to connect regarding your ${currentContact.propertyType}. Let me know if there's a good time to chat, or feel free to text back. Looking forward to connecting!`
-    },
-    {
-      id: "2",
-      name: "Brief Follow-up",
-      template: `Hi ${currentContact.name}, Sam from M&M here. Just called about your ${currentContact.propertyType}. I help investors with retail properties - would love to connect when you have a moment. Text or call back when convenient!`
-    },
-    {
-      id: "3",
-      name: "Value Proposition",
-      template: `Hi ${currentContact.name}, this is Sam with M&M. I specialize in maximizing returns on retail investment properties like your ${currentContact.propertyType}. Just tried calling - would appreciate a few minutes to discuss how I can help. Feel free to text back!`
-    }
-  ] : [];
-
-  const salesScript = currentContact ? `
-    Hi ${currentContact.name}, this is Sam Gfroerer from M&M Real Estate Investment Services.
-    
-    I'm calling because I specialize in helping property owners like yourself maximize returns on retail investment properties, particularly ${currentContact.propertyType} investments.
-    
-    I noticed you own property with ${currentContact.company}, and I'd love to discuss some strategies that have helped my other clients increase their property values by 15-30%.
-    
-    Do you have 3 minutes to discuss how this could benefit your portfolio?
-  ` : "";
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -127,7 +130,7 @@ export const AgentInterface = () => {
         });
       } else {
         // Auto-end call if no connection
-        handleCallEnd('no-answer');
+        handleCallEnd('no-vm');
         toast({
           title: "No answer",
           description: "Call went to voicemail or no answer",
@@ -159,32 +162,33 @@ export const AgentInterface = () => {
     
     if (autoDisposition) {
       setCallDisposition(autoDisposition);
-      setShowTextTemplates(autoDisposition === "no-answer" || autoDisposition === "voicemail");
+      // Show text templates for specific dispositions
+      setShowTextTemplates(['vm', 'no-vm', 'cold-text', 'email'].includes(autoDisposition));
     }
   };
 
   const handleDispositionChange = (value: string) => {
     setCallDisposition(value);
-    setShowTextTemplates(value === "no-answer" || value === "voicemail");
+    // Show text templates only for specific call results
+    setShowTextTemplates(['vm', 'no-vm', 'cold-text', 'email'].includes(value));
   };
 
-  const copyToClipboard = async (text: string, templateName: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
+  const handleTemplateCopy = (content: string, templateName: string) => {
+    navigator.clipboard.writeText(content).then(() => {
       toast({
         title: "Copied to clipboard",
         description: `${templateName} template copied successfully`,
       });
-    } catch (error) {
+    }).catch(() => {
       toast({
         title: "Copy failed",
         description: "Please copy the text manually",
         variant: "destructive"
       });
-    }
+    });
   };
 
-  const submitDisposition = () => {
+  const submitDisposition = async () => {
     if (!callDisposition || !currentContact) {
       toast({
         title: "Missing disposition",
@@ -194,46 +198,98 @@ export const AgentInterface = () => {
       return;
     }
 
-    // Log the call
-    const outcome = callDisposition.includes('connected') ? 'connected' : 
-                   callDisposition === 'voicemail' ? 'voicemail' :
-                   callDisposition === 'no-answer' ? 'no-answer' :
-                   callDisposition === 'busy' ? 'busy' : 'failed';
-    
-    const duration = callStartTime ? Math.floor((Date.now() - callStartTime.getTime()) / 1000) : 0;
-    
-    contactService.logCall(currentContact.id, callDisposition, callNotes, outcome, duration);
-    
-    // Update session stats
-    setSessionStats(prev => ({
-      ...prev,
-      callsMade: prev.callsMade + 1,
-      connected: prev.connected + (outcome === 'connected' ? 1 : 0)
-    }));
+    try {
+      // Log the call
+      const outcome = callDisposition === 'contact' ? 'connected' : 
+                     callDisposition === 'vm' ? 'voicemail' :
+                     callDisposition === 'no-vm' ? 'no-answer' :
+                     callDisposition === 'cold-text' ? 'no-answer' :
+                     callDisposition === 'not-interested' ? 'connected' :
+                     callDisposition === 'dnc' ? 'failed' :
+                     callDisposition === 'email' ? 'no-answer' : 'failed';
+      
+      const duration = callStartTime ? Math.floor((Date.now() - callStartTime.getTime()) / 1000) : 0;
+      
+      contactService.logCall(currentContact.id, callDisposition, callNotes, outcome, duration);
+      
+      // Update session stats
+      setSessionStats(prev => ({
+        ...prev,
+        callsMade: prev.callsMade + 1,
+        connected: prev.connected + (outcome === 'connected' ? 1 : 0)
+      }));
 
-    // Reset form and load next contact
-    setCallNotes("");
-    setCallDisposition("");
-    setShowTextTemplates(false);
-    
-    toast({
-      title: "Call logged successfully",
-      description: "Loading next contact...",
-    });
+      // Reset form
+      setCallNotes("");
+      setCallDisposition("");
+      setShowTextTemplates(false);
+      
+      toast({
+        title: "Call logged successfully",
+        description: "Loading next contact...",
+      });
 
-    // Load next contact after short delay
-    setTimeout(loadNextContact, 1000);
+      // Load next contact
+      await loadNextContact();
+    } catch (error) {
+      console.error('❌ Error submitting disposition:', error);
+      toast({
+        title: "Error logging call",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    }
   };
 
-  const skipContact = () => {
-    if (!currentContact) return;
+  const skipContact = async () => {
+    if (!currentContact || isSkipping || isLoadingContact) {
+      return;
+    }
     
-    toast({
-      title: "Contact skipped",
-      description: "Loading next contact...",
-    });
+    setIsSkipping(true);
     
-    loadNextContact();
+    try {
+      console.log('🔄 Skipping contact:', currentContact.name);
+      
+      // Clear current state immediately
+      setCallNotes("");
+      setCallDisposition("");
+      setShowTextTemplates(false);
+      setCallActive(false);
+      setIsDialing(false);
+      setCooldownTimer(0);
+      setCallStartTime(null);
+      
+      toast({
+        title: "Contact skipped",
+        description: "Loading next contact...",
+      });
+      
+      // Use the new skip method that advances to next contact
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const nextContact = contactService.skipToNextContact();
+      
+      if (nextContact) {
+        setCurrentContact(nextContact);
+        console.log('✅ Skipped to next contact:', nextContact.name);
+      } else {
+        setCurrentContact(null);
+        toast({
+          title: "No more contacts",
+          description: "All contacts have been processed",
+        });
+      }
+      
+    } catch (error) {
+      console.error('❌ Error skipping contact:', error);
+      toast({
+        title: "Error skipping contact",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSkipping(false);
+    }
   };
 
   const toggleSession = () => {
@@ -248,7 +304,39 @@ export const AgentInterface = () => {
     });
   };
 
-  if (!currentContact) {
+  // Template handlers
+  const handleSalesScriptTemplateChange = (templateId: string) => {
+    setActiveSalesScriptId(templateId);
+    templateService.setActiveSalesScript(templateId);
+  };
+
+  const handleSalesScriptContentChange = (content: string) => {
+    setCustomSalesScript(content);
+  };
+
+  const handleSalesScriptSave = () => {
+    templateService.saveCustomSalesScript(customSalesScript);
+  };
+
+  // Show loading state when no contact and loading
+  if (!currentContact && (isLoadingContact || isSkipping)) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Card className="w-96">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>{isSkipping ? "Skipping Contact..." : "Loading Contact..."}</span>
+            </CardTitle>
+            <CardDescription>Please wait while we load the next contact</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show no contacts available state
+  if (!currentContact && !isLoadingContact && !isSkipping) {
     return (
       <div className="flex items-center justify-center h-96">
         <Card className="w-96">
@@ -257,8 +345,12 @@ export const AgentInterface = () => {
             <CardDescription>Please import a contact list to begin dialing</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={loadNextContact} className="w-full">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button onClick={loadNextContact} className="w-full" disabled={isLoadingContact}>
+              {isLoadingContact ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               Refresh Contacts
             </Button>
           </CardContent>
@@ -268,34 +360,45 @@ export const AgentInterface = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Contact Information */}
-      <div className="lg:col-span-1 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Current Contact</span>
-              </div>
-              <Button variant="outline" size="sm" onClick={skipContact}>
-                <SkipForward className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+    <div className="w-full">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full">
+        {/* Left Column - Contact & Controls */}
+        <div className="space-y-6 min-w-0">
+          {/* Contact Information */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <User className="h-5 w-5" />
+                  <span>Current Contact</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={skipContact} 
+                  disabled={isLoadingContact || isSkipping}
+                  className="hover:scale-105 transition-transform"
+                >
+                  {(isLoadingContact || isSkipping) ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SkipForward className="h-4 w-4" />
+                  )}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <h3 className="font-semibold text-lg">{currentContact.name}</h3>
-                <p className="text-gray-600">{currentContact.company}</p>
-                {currentContact.propertyType && (
-                  <p className="text-sm text-blue-600">Property: {currentContact.propertyType}</p>
+                <h3 className="font-semibold text-lg leading-tight break-words">{currentContact?.name}</h3>
+                <p className="text-gray-600 mt-1 leading-relaxed break-words">{currentContact?.company}</p>
+                {currentContact?.propertyType && (
+                  <p className="text-sm text-blue-600 mt-2 break-words">Property: {currentContact.propertyType}</p>
                 )}
-                <div className="flex items-center space-x-2 mt-2">
-                  <Badge variant={currentContact.status === 'pending' ? 'default' : 'secondary'}>
-                    {currentContact.status}
+                <div className="flex items-center space-x-2 mt-3 flex-wrap gap-2">
+                  <Badge variant={currentContact?.status === 'pending' ? 'default' : 'secondary'}>
+                    {currentContact?.status}
                   </Badge>
-                  {currentContact.callCount > 0 && (
+                  {currentContact && currentContact.callCount > 0 && (
                     <Badge variant="outline">
                       {currentContact.callCount} calls
                     </Badge>
@@ -303,224 +406,184 @@ export const AgentInterface = () => {
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex items-center space-x-2">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm">{currentContact.phone}</span>
+                  <Phone className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                  <span className="text-sm break-all">{currentContact?.phone}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm">📧</span>
-                  <span className="text-sm">{currentContact.email}</span>
+                  <span className="text-sm flex-shrink-0">📧</span>
+                  <span className="text-sm break-all">{currentContact?.email}</span>
                 </div>
-                {currentContact.lastCalled && (
+                {currentContact?.lastCalled && (
                   <div className="flex items-center space-x-2">
-                    <Clock className="h-4 w-4 text-gray-500" />
+                    <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-sm">Last called: {currentContact.lastCalled.toLocaleDateString()}</span>
                   </div>
                 )}
               </div>
 
-              {currentContact.notes && (
-                <div>
+              {currentContact?.notes && (
+                <div className="pt-2 border-t">
                   <Label className="text-sm font-medium">Notes:</Label>
-                  <p className="text-sm text-gray-600 mt-1">{currentContact.notes}</p>
+                  <p className="text-sm text-gray-600 mt-2 leading-relaxed break-words">{currentContact.notes}</p>
                 </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Session Stats */}
-        {sessionActive && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Session Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Calls Made:</span>
-                  <span className="font-medium">{sessionStats.callsMade}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Connected:</span>
-                  <span className="font-medium">{sessionStats.connected}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Connection Rate:</span>
-                  <span className="font-medium">
-                    {sessionStats.callsMade > 0 ? Math.round((sessionStats.connected / sessionStats.callsMade) * 100) : 0}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Session Time:</span>
-                  <span className="font-medium">
-                    {Math.floor((Date.now() - sessionStats.startTime.getTime()) / 60000)}m
-                  </span>
-                </div>
-              </div>
             </CardContent>
           </Card>
-        )}
 
-        {/* Call Controls */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Call Controls</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Button
-                onClick={toggleSession}
-                variant={sessionActive ? "destructive" : "default"}
-                className="w-full"
-              >
-                {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
-                {sessionActive ? "Pause Session" : "Start Session"}
-              </Button>
-
-              {sessionActive && (
-                <>
-                  {!callActive && !isDialing && cooldownTimer === 0 && (
-                    <Button onClick={startDialing} className="w-full">
-                      <PhoneCall className="h-4 w-4 mr-2" />
-                      Start Call
-                    </Button>
-                  )}
-
-                  {isDialing && (
-                    <Button disabled className="w-full">
-                      <Phone className="h-4 w-4 mr-2 animate-pulse" />
-                      Dialing {currentContact.name}...
-                    </Button>
-                  )}
-
-                  {callActive && (
-                    <Button onClick={endCall} variant="destructive" className="w-full">
-                      <PhoneOff className="h-4 w-4 mr-2" />
-                      End Call
-                    </Button>
-                  )}
-
-                  {cooldownTimer > 0 && (
-                    <div className="text-center">
-                      <Badge variant="outline" className="bg-yellow-50">
-                        <Clock className="h-4 w-4 mr-1" />
-                        Cooldown: {cooldownTimer}s
-                      </Badge>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Interface */}
-      <div className="lg:col-span-2 space-y-6">
-        {/* Sales Script */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales Script</CardTitle>
-            <CardDescription>Use this script as a guide for your call</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <pre className="whitespace-pre-wrap text-sm font-mono text-blue-900">
-                {salesScript}
-              </pre>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Text Message Templates */}
-        {showTextTemplates && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="h-5 w-5" />
-                <span>Text Message Templates</span>
-              </CardTitle>
-              <CardDescription>
-                Copy templates below to send via Phone Link after missed calls
-              </CardDescription>
+          {/* Quick Call Widget */}
+          {currentContact && (
+            <CallingWidget phoneNumber={currentContact.phone.replace(/\D/g, '')} />
+          )}
+          
+          {/* Call Controls */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle>Call Controls</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {textTemplates.map((template) => (
-                  <div key={template.id} className="border rounded-lg p-4 bg-green-50">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-sm text-green-800">{template.name}</h4>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => copyToClipboard(template.template, template.name)}
-                        className="text-green-700 border-green-300 hover:bg-green-100"
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
+                <Button
+                  onClick={toggleSession}
+                  variant={sessionActive ? "destructive" : "default"}
+                  className="w-full hover:scale-105 transition-transform"
+                >
+                  {sessionActive ? <Pause className="h-4 w-4 mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+                  {sessionActive ? "Pause Session" : "Start Session"}
+                </Button>
+
+                {sessionActive && (
+                  <>
+                    {!callActive && !isDialing && cooldownTimer === 0 && (
+                      <Button onClick={startDialing} className="w-full hover:scale-105 transition-transform">
+                        <PhoneCall className="h-4 w-4 mr-2" />
+                        Start Call
                       </Button>
-                    </div>
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {template.template}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700">
-                  💡 <strong>Tip:</strong> Copy the template, then paste it into Microsoft Phone Link to send as a text message to {currentContact.name} at {currentContact.phone}
-                </p>
+                    )}
+
+                    {isDialing && (
+                      <Button disabled className="w-full">
+                        <Phone className="h-4 w-4 mr-2 animate-pulse" />
+                        Dialing {currentContact?.name}...
+                      </Button>
+                    )}
+
+                    {callActive && (
+                      <Button onClick={endCall} variant="destructive" className="w-full hover:scale-105 transition-transform">
+                        <PhoneOff className="h-4 w-4 mr-2" />
+                        End Call
+                      </Button>
+                    )}
+
+                    {cooldownTimer > 0 && (
+                      <div className="text-center">
+                        <Badge variant="outline" className="bg-yellow-50 animate-pulse">
+                          <Clock className="h-4 w-4 mr-1" />
+                          Cooldown: {cooldownTimer}s
+                        </Badge>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
-        )}
+        </div>
 
-        {/* Call Disposition */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Call Disposition</CardTitle>
-            <CardDescription>Log the outcome of your call</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="disposition">Call Result</Label>
-                <Select value={callDisposition} onValueChange={handleDispositionChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select call outcome" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="connected">Connected - Interested</SelectItem>
-                    <SelectItem value="connected-not-interested">Connected - Not Interested</SelectItem>
-                    <SelectItem value="voicemail">Voicemail Left</SelectItem>
-                    <SelectItem value="no-answer">No Answer</SelectItem>
-                    <SelectItem value="busy">Busy Signal</SelectItem>
-                    <SelectItem value="callback">Callback Requested</SelectItem>
-                    <SelectItem value="wrong-number">Wrong Number</SelectItem>
-                    <SelectItem value="do-not-call">Do Not Call</SelectItem>
-                  </SelectContent>
-                </Select>
+        {/* Right Column - Sales Script & Call Disposition */}
+        <div className="space-y-6 min-w-0">
+          {/* Sales Script - Collapsible */}
+          <Collapsible open={salesScriptOpen} onOpenChange={setSalesScriptOpen}>
+            <Card className="hover:shadow-lg transition-shadow duration-200">
+              <CollapsibleTrigger asChild>
+                <CardHeader className="pb-4 cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Sales Script</span>
+                    {salesScriptOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </CardTitle>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent>
+                  <EditableTemplate
+                    title=""
+                    templates={salesScripts}
+                    activeTemplateId={activeSalesScriptId}
+                    customContent={customSalesScript}
+                    onTemplateChange={handleSalesScriptTemplateChange}
+                    onCustomContentChange={handleSalesScriptContentChange}
+                    onSave={handleSalesScriptSave}
+                    placeholder="Enter your custom sales script here..."
+                    contact={currentContact}
+                    processTemplate={templateService.processTemplate.bind(templateService)}
+                    className="border-0 shadow-none"
+                  />
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+
+          {/* Text Message Templates - Only show for specific call results */}
+          {showTextTemplates && currentContact && (
+            <TextTemplateSelector
+              contact={currentContact}
+              onTemplateCopy={handleTemplateCopy}
+            />
+          )}
+
+          {/* Call Disposition - Directly below Sales Script */}
+          <Card className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-4">
+              <CardTitle>Call Disposition</CardTitle>
+              <CardDescription>Log the outcome of your call</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="disposition" className="text-sm font-medium">Call Result</Label>
+                  <Select value={callDisposition} onValueChange={handleDispositionChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select call outcome" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vm">📠 VM 📠</SelectItem>
+                      <SelectItem value="contact">🗣️ Contact 🗣️</SelectItem>
+                      <SelectItem value="no-vm">✖️ No VM ✖️</SelectItem>
+                      <SelectItem value="cold-text">📱 Cold-Text 📱</SelectItem>
+                      <SelectItem value="not-interested">Not Interested</SelectItem>
+                      <SelectItem value="dnc">❌ DNC ❌</SelectItem>
+                      <SelectItem value="email">📧 Email 📧</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="notes" className="text-sm font-medium">Call Notes</Label>
+                  <Textarea
+                    id="notes"
+                    value={callNotes}
+                    onChange={(e) => setCallNotes(e.target.value)}
+                    placeholder="Add any relevant notes about the call..."
+                    rows={4}
+                    className="resize-none leading-relaxed"
+                  />
+                </div>
+
+                <Button 
+                  onClick={submitDisposition} 
+                  className="w-full hover:scale-105 transition-transform" 
+                  disabled={!callDisposition || isLoadingContact || isSkipping}
+                >
+                  {(isLoadingContact || isSkipping) ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : null}
+                  Submit & Next Contact
+                </Button>
               </div>
-
-              <div>
-                <Label htmlFor="notes">Call Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={callNotes}
-                  onChange={(e) => setCallNotes(e.target.value)}
-                  placeholder="Add any relevant notes about the call..."
-                  rows={4}
-                />
-              </div>
-
-              <Button onClick={submitDisposition} className="w-full" disabled={!callDisposition}>
-                Submit & Next Contact
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

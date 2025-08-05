@@ -1,4 +1,3 @@
-
 export interface Contact {
   id: string;
   name: string;
@@ -12,164 +11,85 @@ export interface Contact {
   disposition?: string;
   status: 'pending' | 'contacted' | 'completed' | 'dnc';
   tags?: string[];
+  call_list_id: number;
 }
 
-export interface CallHistory {
-  id: string;
-  contactId: string;
-  timestamp: Date;
-  duration: number;
-  disposition: string;
-  notes: string;
-  outcome: 'connected' | 'voicemail' | 'no-answer' | 'busy' | 'failed';
+export interface CallList {
+  id: number;
+  name: string;
 }
 
-// Sample contact data
-export const sampleContacts: Contact[] = [
-  {
-    id: "1",
-    name: "John Smith",
-    phone: "+1 (555) 123-4567",
-    email: "john.smith@techcorp.com",
-    company: "TechCorp Solutions",
-    propertyType: "retail strip center",
-    notes: "Interested in enterprise solutions, prefers morning calls",
-    callCount: 0,
-    status: 'pending'
-  },
-  {
-    id: "2",
-    name: "Sarah Johnson",
-    phone: "+1 (555) 234-5678",
-    email: "sarah@retailplus.com",
-    company: "Retail Plus",
-    propertyType: "shopping mall",
-    notes: "Owner of 3 properties, very busy schedule",
-    callCount: 1,
-    status: 'pending',
-    lastCalled: new Date(Date.now() - 86400000) // Yesterday
-  },
-  {
-    id: "3",
-    name: "Mike Chen",
-    phone: "+1 (555) 345-6789",
-    email: "m.chen@propertygroup.com",
-    company: "Property Investment Group",
-    propertyType: "office building",
-    notes: "Looking to expand portfolio, interested in REITs",
-    callCount: 0,
-    status: 'pending'
-  },
-  {
-    id: "4",
-    name: "Lisa Rodriguez",
-    phone: "+1 (555) 456-7890",
-    email: "lisa.r@commercialwest.com",
-    company: "Commercial West",
-    propertyType: "warehouse complex",
-    notes: "Prefers email first, then phone follow-up",
-    callCount: 2,
-    status: 'contacted',
-    lastCalled: new Date(Date.now() - 172800000) // 2 days ago
-  },
-  {
-    id: "5",
-    name: "David Wilson",
-    phone: "+1 (555) 567-8901",
-    email: "dwilson@investcorp.com",
-    company: "Invest Corp",
-    propertyType: "mixed-use development",
-    notes: "High-value client, decision maker",
-    callCount: 0,
-    status: 'pending'
-  }
-];
+const API_BASE_URL = "/api";
 
-export class ContactService {
-  private contacts: Contact[] = [...sampleContacts];
-  private callHistory: CallHistory[] = [];
-
-  getContacts(status?: Contact['status']): Contact[] {
-    if (status) {
-      return this.contacts.filter(c => c.status === status);
+export const contactService = {
+  async getCallLists(): Promise<CallList[]> {
+    const response = await fetch(`${API_BASE_URL}/call-lists`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch call lists");
     }
-    return [...this.contacts];
-  }
+    return response.json();
+  },
 
-  getNextContact(): Contact | null {
-    const pendingContacts = this.contacts.filter(c => c.status === 'pending');
-    if (pendingContacts.length === 0) return null;
-    
-    // Sort by call count (ascending) and last called (oldest first)
-    return pendingContacts.sort((a, b) => {
-      if (a.callCount !== b.callCount) {
-        return a.callCount - b.callCount;
-      }
-      if (a.lastCalled && b.lastCalled) {
-        return a.lastCalled.getTime() - b.lastCalled.getTime();
-      }
-      return a.lastCalled ? 1 : -1;
-    })[0];
-  }
-
-  updateContact(contactId: string, updates: Partial<Contact>): void {
-    const index = this.contacts.findIndex(c => c.id === contactId);
-    if (index !== -1) {
-      this.contacts[index] = { ...this.contacts[index], ...updates };
+  async createCallList(name: string): Promise<CallList> {
+    const response = await fetch(`${API_BASE_URL}/call-lists`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to create call list");
     }
-  }
+    return response.json();
+  },
 
-  logCall(contactId: string, disposition: string, notes: string, outcome: CallHistory['outcome'], duration: number = 0): void {
-    const contact = this.contacts.find(c => c.id === contactId);
-    if (contact) {
-      // Update contact
-      contact.callCount += 1;
-      contact.lastCalled = new Date();
-      contact.disposition = disposition;
-      
-      // Update status based on disposition
-      if (disposition === 'do-not-call') {
-        contact.status = 'dnc';
-      } else if (['connected', 'callback'].includes(disposition)) {
-        contact.status = 'contacted';
-      }
-
-      // Log call history
-      this.callHistory.push({
-        id: Date.now().toString(),
-        contactId,
-        timestamp: new Date(),
-        duration,
-        disposition,
-        notes,
-        outcome
-      });
+  async getContacts(callListId?: number): Promise<Contact[]> {
+    let url = `${API_BASE_URL}/contacts`;
+    if (callListId) {
+      url += `?call_list_id=${callListId}`;
     }
-  }
-
-  getCallHistory(contactId?: string): CallHistory[] {
-    if (contactId) {
-      return this.callHistory.filter(h => h.contactId === contactId);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to fetch contacts");
     }
-    return [...this.callHistory];
-  }
+    return response.json();
+  },
 
-  getStats() {
-    const total = this.contacts.length;
-    const pending = this.contacts.filter(c => c.status === 'pending').length;
-    const contacted = this.contacts.filter(c => c.status === 'contacted').length;
-    const completed = this.contacts.filter(c => c.status === 'completed').length;
-    const dnc = this.contacts.filter(c => c.status === 'dnc').length;
-    
-    const totalCalls = this.callHistory.length;
-    const connected = this.callHistory.filter(h => h.outcome === 'connected').length;
-    const connectionRate = totalCalls > 0 ? (connected / totalCalls) * 100 : 0;
+  async createContact(contact: Omit<Contact, 'id' | 'callCount' | 'status' | 'lastCalled' | 'disposition' | 'tags'>): Promise<Contact> {
+    const response = await fetch(`${API_BASE_URL}/contacts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(contact),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to create contact");
+    }
+    return response.json();
+  },
 
-    return {
-      contacts: { total, pending, contacted, completed, dnc },
-      calls: { total: totalCalls, connected, connectionRate: Math.round(connectionRate) }
-    };
-  }
-}
+  async updateContact(id: string, updates: Partial<Contact>): Promise<Contact> {
+    const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!response.ok) {
+      throw new Error("Failed to update contact");
+    }
+    return response.json();
+  },
 
-export const contactService = new ContactService();
+  async deleteContact(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/contacts/${id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      throw new Error("Failed to delete contact");
+    }
+  },
+};
