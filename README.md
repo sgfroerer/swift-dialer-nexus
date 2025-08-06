@@ -3,7 +3,7 @@
 
 _Auto-Dialer with support for both VoIP (SIP protocol via Cisco Webex) and cellular calls (Microsoft Phone Link integration)_
 
-![OpenDialer Pro](./OpenDialer Pro.png)
+![OpenDialer Pro](./OpenDialer-Pro.png)
 
 ## Project Overview
 
